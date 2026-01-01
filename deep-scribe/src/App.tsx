@@ -5,6 +5,7 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DeepScribeLayout } from './components/DeepScribeLayout';
+import { NewsFeed } from './components/NewsFeed';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -132,61 +133,95 @@ function App() {
     </div>
   );
 
-  const Editor = (
-    <div className="w-full h-full flex flex-col bg-slate-950 relative overflow-hidden">
-      <header className="h-16 flex items-center justify-between px-8 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm z-10 shrink-0">
-        <div>
-          <h2 className="text-sm font-medium text-slate-200">Untitled Draft</h2>
-          <p className="text-xs text-slate-500">Last edited just now</p>
-        </div>
-        <button className="px-4 py-2 text-xs font-semibold bg-slate-100 text-slate-900 rounded hover:bg-white transition shadow-sm">
-          Export
-        </button>
-      </header>
+  /* Editor replaced by NewsFeed component */
 
-      <main className="flex-1 overflow-y-auto p-8 flex justify-center">
-        <div className="w-full max-w-prose h-full flex flex-col">
-          <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl overflow-hidden relative group">
-            <textarea
-              className="w-full h-full p-12 bg-transparent resize-none focus:outline-none text-lg leading-relaxed placeholder-slate-700 text-slate-100 font-serif"
-              placeholder="Start writing your masterpiece..."
-              spellCheck={false}
-            ></textarea>
-            <div className="absolute bottom-4 right-4 text-xs text-slate-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-              0 words
+  const Metadata = (
+    <div className="w-full h-full bg-[#0a0a0a] border-l border-white/5 flex flex-col p-6 overflow-y-auto">
+
+      {/* Module A: Trending Now */}
+      <div className="mb-10">
+        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-6">
+          Trending Now
+        </h2>
+        <div className="space-y-6">
+          {/* Item 1 */}
+          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>01</span>
+            <div>
+              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">The Death of Corpocore</h4>
+              <span className="text-xs text-gray-500">Elena Fisher</span>
+            </div>
+          </div>
+          {/* Item 2 */}
+          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>02</span>
+            <div>
+              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">Rust in 2025</h4>
+              <span className="text-xs text-gray-500">Marcus Chen</span>
+            </div>
+          </div>
+          {/* Item 3 */}
+          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>03</span>
+            <div>
+              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">AI & Typography</h4>
+              <span className="text-xs text-gray-500">Sarah Connor</span>
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  );
-
-  const Metadata = (
-    <div className="w-full h-full bg-slate-900 flex flex-col">
-      <div className="p-4 border-b border-slate-800">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Metadata</h2>
       </div>
-      <div className="p-4 space-y-6">
-        {/* Placeholder for metadata fields */}
-        <div className="space-y-2">
-          <label className="text-xs text-slate-500 uppercase font-semibold">Tags</label>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">Sci-Fi</span>
-            <span className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300">Draft</span>
+
+      {/* Module B: Reading List */}
+      <div className="mb-10">
+        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-4">
+          Reading List
+        </h2>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+            <div className="w-10 h-10 rounded-md bg-[#1e1e1e] border border-white/5 overflow-hidden shrink-0">
+              <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt="Thumb" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">Design Systems Vol. 2</h4>
+              <span className="text-[11px] text-gray-500">4 min read</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+            <div className="w-10 h-10 rounded-md bg-[#1e1e1e] border border-white/5 overflow-hidden shrink-0">
+              <img src="https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=100&q=80" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt="Thumb" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">Neo-Brutalism UI</h4>
+              <span className="text-[11px] text-gray-500">12 min read</span>
+            </div>
           </div>
         </div>
-        <div className="space-y-2">
-          <label className="text-xs text-slate-500 uppercase font-semibold">Notes</label>
-          <textarea className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600" rows={6} placeholder="Chapter notes..."></textarea>
+      </div>
+
+      {/* Module C: Explore */}
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-4">
+          Explore
+        </h2>
+        <div className="flex flex-col gap-1">
+          {['Generative Art', 'Slow Software', 'Typography', 'Web Assembly', 'Privacy'].map((topic) => (
+            <a key={topic} href="#" className="block text-sm text-gray-500 hover:text-white hover:translate-x-1 transition-all py-1">
+              {topic}
+            </a>
+          ))}
+          <a href="#" className="block text-sm text-blue-400/80 hover:text-blue-400 hover:translate-x-1 transition-all py-1 mt-2">
+            View all topics →
+          </a>
         </div>
       </div>
+
     </div>
   );
 
   return (
     <DeepScribeLayout
       sidebar={Sidebar}
-      editor={Editor}
+      editor={<NewsFeed />}
       metadata={Metadata}
     />
   );
