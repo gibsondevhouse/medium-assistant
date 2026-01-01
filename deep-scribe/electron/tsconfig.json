@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "commonjs",
+        "moduleResolution": "Node",
+        "lib": [
+            "ESNext"
+        ],
+        "outDir": "../dist-electron",
+        "rootDir": ".",
+        "strict": true,
+        "noEmit": false,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

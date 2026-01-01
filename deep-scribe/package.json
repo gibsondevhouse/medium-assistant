@@ -1,0 +1,36 @@
+{
+  "name": "deep-scribe",
+  "version": "0.1.0",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm:dev:vite\" \"npm:dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on tcp:3000 && tsc -p electron && electron .",
+    "build": "tsc && vite build && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "electron-is-dev": "^2.0.0",
+    "lucide-react": "^0.562.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "^4.1.1",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "autoprefixer": "^10.4.14",
+    "concurrently": "^8.2.0",
+    "electron": "^25.3.1",
+    "electron-builder": "^24.4.0",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.4",
+    "wait-on": "^7.0.1"
+  }
+}
