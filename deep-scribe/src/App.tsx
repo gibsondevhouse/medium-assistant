@@ -17,10 +17,14 @@ function App() {
 
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
+  const [activeProvider, setActiveProvider] = useState(() => localStorage.getItem('activeProvider') || 'gemini');
+
+  useEffect(() => {
+    localStorage.setItem('activeProvider', activeProvider);
+    // Sync provider to backend env if needed? For now just frontend state.
+  }, [activeProvider]);
 
   const [activeView, setActiveView] = useState('Dashboard');
-
-
 
   useEffect(() => {
     async function checkConnection() {
@@ -46,10 +50,13 @@ function App() {
 
     checkConnection();
 
-    // Initial check - just logging for now
+    // Lazy Auth Check
     if (window.electronAPI?.settings) {
-      window.electronAPI.settings.bothKeysSet().then((set) => {
-        console.log("Startup Auth Check:", set ? "Keys Present" : "No Keys (Lazy Mode)");
+      window.electronAPI.settings.bothKeysSet().then((keysPresent) => {
+        console.log("Startup Auth Check:", keysPresent ? "Keys Present" : "No Keys (Lazy Mode)");
+        if (!keysPresent) {
+          setShowSettings(true);
+        }
       });
     } else {
       console.warn("Electron API not available (App.tsx)");
@@ -241,6 +248,8 @@ function App() {
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
+        activeProvider={activeProvider}
+        setActiveProvider={setActiveProvider}
         onKeysUpdated={() => {
           console.log("Keys updated");
           // Force re-render or notify components?

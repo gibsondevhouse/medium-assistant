@@ -26,11 +26,13 @@ interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onKeysUpdated?: () => void;
+    activeProvider?: string;
+    setActiveProvider?: (provider: string) => void;
 }
 
 type TabType = 'api' | 'research' | 'news' | 'editor' | 'advanced';
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onKeysUpdated }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onKeysUpdated, activeProvider, setActiveProvider }) => {
     const [activeTab, setActiveTab] = useState<TabType>('api');
     const [geminiKey, setGeminiKeyDisplay] = useState<string | undefined>();
     const [gnewsKey, setGnewsKeyDisplay] = useState<string | undefined>();
@@ -220,6 +222,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                 </div>
 
                                 <div className="space-y-4">
+                                    {/* Active Provider Selector */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-2">Active AI Provider</label>
+                                        <select
+                                            value={activeProvider}
+                                            onChange={(e) => setActiveProvider?.(e.target.value)}
+                                            className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        >
+                                            <option value="gemini">Google Gemini</option>
+                                            <option value="openai">OpenAI (Coming Soon)</option>
+                                            <option value="anthropic">Anthropic (Coming Soon)</option>
+                                        </select>
+                                        <p className="mt-1 text-xs text-[#8b949e]">Select which AI service to use for research and writing.</p>
+                                    </div>
+
                                     <div>
                                         <ApiKeyInput
                                             label="Gemini API Key"
