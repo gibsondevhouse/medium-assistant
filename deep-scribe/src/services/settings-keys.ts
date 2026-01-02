@@ -30,6 +30,14 @@ export async function setGNewsKey(key: string): Promise<void> {
     }
 }
 
+export async function getRssUrl(): Promise<string> {
+    return await window.electronAPI.settings.getRssUrl();
+}
+
+export async function setRssUrl(url: string): Promise<void> {
+    await window.electronAPI.settings.setRssUrl(url);
+}
+
 export async function clearAllKeys(): Promise<void> {
     await window.electronAPI.settings.clearAllKeys();
 }

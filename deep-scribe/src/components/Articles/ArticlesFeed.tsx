@@ -37,161 +37,90 @@ function getCardSpanClass(index: number): string {
 
 export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
   const [displayedArticles, setDisplayedArticles] = useState<MediumArticle[]>([]);
+  const [allArticles, setAllArticles] = useState<MediumArticle[]>([]);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [rssUrl, setRssUrl] = useState<string | null>(null);
 
-  // Mock Medium articles data
-  const mockArticles: MediumArticle[] = [
-    {
-      id: 'medium-1',
-      title: 'Building Production-Ready AI Applications with Claude',
-      description: 'A comprehensive guide to integrating Claude API into your applications with best practices for error handling, rate limiting, and prompt engineering.',
-      author: 'Sarah Chen',
-      authorImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 12,
-      claps: 2400,
-      url: 'https://medium.com/example/building-production-ai',
-      image: 'https://images.unsplash.com/photo-1677442d019cecf8178ae5900677046c97c853b94?w=800&q=80',
-      tags: ['AI', 'Development', 'Claude'],
-      cardType: 'hero'
-    },
-    {
-      id: 'medium-2',
-      title: 'The Future of Web Development in 2026',
-      description: 'Exploring emerging technologies, frameworks, and paradigms that will shape web development this year. From AI-assisted coding to edge computing.',
-      author: 'Marcus Johnson',
-      authorImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 15,
-      claps: 5600,
-      url: 'https://medium.com/example/future-web-dev',
-      image: 'https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=800&q=80',
-      tags: ['Web Development', 'Technology', 'Trends'],
-      cardType: 'sub-hero'
-    },
-    {
-      id: 'medium-3',
-      title: 'Prompt Engineering Secrets from LLM Experts',
-      description: 'Learn advanced techniques for crafting effective prompts that unlock the full potential of large language models. Including real-world examples.',
-      author: 'Elena Rodriguez',
-      authorImage: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 10,
-      claps: 8200,
-      url: 'https://medium.com/example/prompt-engineering',
-      image: 'https://images.unsplash.com/photo-1526374965328-7f5ae4e8a84e?w=800&q=80',
-      tags: ['AI', 'Prompting', 'LLM'],
-      cardType: 'basic'
-    },
-    {
-      id: 'medium-4',
-      title: 'Building a Photography Business in the Digital Age',
-      description: 'From portfolio websites to client management systems, everything you need to know about running a modern photography business.',
-      author: 'James Wilson',
-      authorImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 14,
-      claps: 3100,
-      url: 'https://medium.com/example/photography-business',
-      image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&q=80',
-      tags: ['Photography', 'Business', 'Digital'],
-      cardType: 'basic'
-    },
-    {
-      id: 'medium-5',
-      title: 'Mastering TypeScript for Scale',
-      description: 'Best practices for using TypeScript in large-scale applications. Covers advanced types, generics, decorators, and architectural patterns.',
-      author: 'David Park',
-      authorImage: 'https://images.unsplash.com/photo-1507238691154-cef280dff58e?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 16,
-      claps: 6800,
-      url: 'https://medium.com/example/typescript-scale',
-      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80',
-      tags: ['TypeScript', 'Development', 'Best Practices'],
-      cardType: 'basic'
-    },
-    {
-      id: 'medium-6',
-      title: 'The Art and Science of Color in Web Design',
-      description: 'Understanding color theory and psychology to create visually stunning and accessible web experiences.',
-      author: 'Lisa Thompson',
-      authorImage: 'https://images.unsplash.com/photo-1517849845537-1d51a20414de?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 9,
-      claps: 4200,
-      url: 'https://medium.com/example/color-design',
-      image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80',
-      tags: ['Design', 'UX', 'Color Theory'],
-      cardType: 'basic'
-    },
-    {
-      id: 'medium-7',
-      title: 'Advanced React Patterns for Enterprise Apps',
-      description: 'Deep dive into compound components, render props, and hooks patterns that power large-scale React applications.',
-      author: 'Alex Kumar',
-      authorImage: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 18,
-      claps: 7200,
-      url: 'https://medium.com/example/react-patterns',
-      image: 'https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=800&q=80',
-      tags: ['React', 'Development', 'Best Practices'],
-      cardType: 'basic'
-    },
-    {
-      id: 'medium-8',
-      title: 'Sustainable Web Design in 2026',
-      description: 'Building web applications that are not just fast, but also environmentally conscious. Strategies for reducing digital carbon footprint.',
-      author: 'Nina Patel',
-      authorImage: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-      publishedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-      readTime: 11,
-      claps: 3900,
-      url: 'https://medium.com/example/sustainable-design',
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
-      tags: ['Design', 'Sustainability', 'Web'],
-      cardType: 'basic'
-    },
-  ];
+  const ITEMS_PER_PAGE = 8;
 
-  // Generate articles with duplication for pagination
-  const generateArticles = (count: number): MediumArticle[] => {
-    const articles: MediumArticle[] = [];
-    for (let i = 0; i < count; i++) {
-      const baseArticle = mockArticles[i % mockArticles.length];
-      articles.push({
-        ...baseArticle,
-        id: `${baseArticle.id}-${i}` // Unique ID for each instance
-      });
-    }
-    return articles;
-  };
-
-  // Load initial articles
+  // Load configured RSS URL on mount
   useEffect(() => {
-    const firstPageArticles = generateArticles(10);
-    setDisplayedArticles(firstPageArticles);
-    setPage(1);
+    async function loadSettings() {
+      if (window.electronAPI?.settings) {
+        try {
+          const url = await window.electronAPI.settings.getRssUrl();
+          setRssUrl(url);
+          loadArticles(url);
+        } catch (e) {
+          console.error("Failed to load RSS URL:", e);
+        }
+      }
+    }
+    loadSettings();
   }, []);
 
-  // Intersection Observer for pagination
+  const loadArticles = async (url: string) => {
+    setIsLoading(true);
+    try {
+      if (!url) return;
+
+      const result = await window.electronAPI.rss.fetch(url);
+      if (result.success && result.feed) {
+        const mappedArticles: MediumArticle[] = result.feed.items.map((item: any, index: number) => {
+          const imgMatch = item.content?.match(/<img[^>]+src="([^">]+)"/);
+          const image = imgMatch ? imgMatch[1] : undefined;
+          const tags = item.categories || ['Tech', 'Medium'];
+
+          return {
+            id: item.guid || item.id || `rss-${index}`,
+            title: item.title || 'Untitled',
+            description: item.contentSnippet || item.summary || '',
+            author: item.creator || result.feed.title || 'Medium',
+            authorImage: undefined,
+            publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
+            readTime: 5,
+            claps: 0,
+            url: item.link || '#',
+            image: image,
+            tags: tags,
+            cardType: 'basic'
+          };
+        });
+
+        setAllArticles(mappedArticles);
+        // Initial Page
+        setDisplayedArticles(mappedArticles.slice(0, ITEMS_PER_PAGE));
+        setPage(1);
+
+      } else {
+        console.error("RSS Fetch Failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Intersection Observer for Client-Side Pagination
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoading) {
+        if (entries[0].isIntersecting && !isLoading && allArticles.length > displayedArticles.length) {
+
           setIsLoading(true);
-          // Simulate loading delay
+          // Simulate small network delay for UX
           setTimeout(() => {
-            const newArticles = generateArticles(10);
-            setDisplayedArticles((prev) => [...prev, ...newArticles]);
-            setPage((prev) => prev + 1);
+            const nextPage = page + 1;
+            const nextBatch = allArticles.slice(0, nextPage * ITEMS_PER_PAGE);
+            setDisplayedArticles(nextBatch);
+            setPage(nextPage);
             setIsLoading(false);
-          }, 300);
+          }, 600);
         }
       },
       { threshold: 0.1 }
@@ -202,22 +131,35 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
     }
 
     return () => observer.disconnect();
-  }, [isLoading]);
+  }, [isLoading, allArticles, displayedArticles, page]);
 
-  // Get all unique tags
+  // Get all unique tags from ALL articles (not just displayed)
   const allTags = Array.from(
-    new Set(mockArticles.flatMap(article => article.tags))
+    new Set(allArticles.flatMap(article => article.tags))
   ).sort();
 
-  // Filter articles by tag and add animation delay
-  const filteredArticles = activeTag
-    ? displayedArticles.filter(article => article.tags.includes(activeTag))
-    : displayedArticles;
+  // Update filtered articles when activeTag changes
+  useEffect(() => {
+    if (activeTag) {
+      const filtered = allArticles.filter(article => article.tags.includes(activeTag));
+      setDisplayedArticles(filtered.slice(0, page * ITEMS_PER_PAGE)); // Respect current page size or reset? 
+      // Better reset pagination for filtered view or just show matched.
+      // For simplicity, let's show all matched for now, or paginated matched.
+      setDisplayedArticles(filtered);
+    } else if (allArticles.length > 0) {
+      // Reset to paginated view
+      setDisplayedArticles(allArticles.slice(0, page * ITEMS_PER_PAGE));
+    }
+  }, [activeTag, allArticles, page]);
 
-  // Map articles with animation timing
-  const articlesWithAnimation = filteredArticles.map((article, index) => ({
-    article,
-    delay: index * 30 // Stagger animation for each card
+
+  // Map articles with animation timing and calculate Display Card Type
+  const articlesWithAnimation = displayedArticles.map((article, index) => ({
+    article: {
+      ...article,
+      cardType: index === 0 ? 'hero' : index === 1 ? 'sub-hero' : 'basic'
+    } as MediumArticle,
+    delay: (index % ITEMS_PER_PAGE) * 30 // Stagger animation for each batch
   }));
 
   const formatDate = (dateString: string) => {
@@ -243,7 +185,7 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
               <h1 className="text-4xl font-bold text-white mb-2" style={{ fontFamily: '"Playfair Display", serif' }}>
                 Medium Articles
               </h1>
-              <p className="text-gray-400 mb-6">Curated writing on technology, design, and creative work</p>
+              <p className="text-gray-400 mb-6">Curated from {rssUrl || 'your feed'} • {allArticles.length} recent stories</p>
             </div>
 
             {/* Tag Filter Pills - Hidden scrollbar */}
@@ -295,15 +237,19 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
                   <div className="absolute inset-0" style={{
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.9) 100%)'
                   }}>
-                    <img
-                      src={article.image}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        img.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80';
-                      }}
-                    />
+                    {article.image ? (
+                      <img
+                        src={article.image}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black" />
+                    )}
                   </div>
 
                   {/* Content Overlay */}
@@ -352,7 +298,7 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
                           </span>
                         </div>
                         <span className="text-white/70 drop-shadow">
-                          {(article.claps / 1000).toFixed(1)}k
+                          {formatDate(article.publishedAt)}
                         </span>
                       </div>
                     </div>
@@ -397,22 +343,17 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
         }
       `}</style>
 
-      {/* Floating Command Capsule */}
+      {/* Floating Command Capsule (Search) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[700px] z-50">
         <div className="bg-[#1e1e1e]/85 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-full p-2 flex items-center gap-3 transition-all duration-300 focus-within:bg-[#1e1e1e]/95 focus-within:shadow-[0_15px_50px_rgba(0,0,0,0.6)] focus-within:border-white/20">
-          {/* Left Action: Add Context */}
           <button className="w-9 h-9 rounded-full flex items-center justify-center text-[#a1a1a1] hover:text-white hover:bg-white/10 transition-colors shrink-0">
             <Plus className="w-5 h-5" />
           </button>
-
-          {/* Center Input */}
           <input
             type="text"
             placeholder="Search articles..."
             className="flex-1 bg-transparent border-none text-white text-base placeholder:text-[#a1a1a1] focus:outline-none py-2"
           />
-
-          {/* Right Actions */}
           <div className="flex items-center gap-2 shrink-0">
             <button className="w-9 h-9 rounded-full flex items-center justify-center text-[#a1a1a1] hover:text-white hover:bg-white/10 transition-colors">
               <Mic className="w-5 h-5" />

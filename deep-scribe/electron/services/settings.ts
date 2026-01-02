@@ -1,16 +1,19 @@
 import { safeStorage, app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+// Unified import for CJS compatibility with electron-store v8
+const Store = require('electron-store');
 import { GoogleGenerativeAI } from '@google/generative-ai';
-// Node 18+ fetch is global in Electron main process
 
-// In Node 18+ fetch is global, but for safety in Electron we'll check or use node-fetch if needed.
-// Electron usually bundles Node. Assuming Node 18+ or distinct fetch availability.
+interface StoreSchema {
+    rssFeedUrl: string;
+}
 
 export class SettingsService {
     private configDir: string;
     private geminiKeyPath: string;
     private gnewsKeyPath: string;
+    private store: any;
 
     constructor() {
         this.configDir = path.join(app.getPath('userData'), 'keys');
@@ -21,6 +24,35 @@ export class SettingsService {
         if (!fs.existsSync(this.configDir)) {
             fs.mkdirSync(this.configDir, { recursive: true });
         }
+    }
+
+    // INTERNAL: Lazy load store
+    private getStore() {
+        if (this.store) return this.store;
+
+        try {
+            // Using standard require for CJS-compatible electron-store v8.1.0
+            this.store = new Store({
+                defaults: {
+                    rssFeedUrl: 'https://medium.com/feed/tag/technology'
+                }
+            });
+            return this.store;
+        } catch (e) {
+            console.error('Failed to load electron-store:', e);
+            throw e;
+        }
+    }
+
+    // GENERAL SETTINGS (Electron Store)
+    getRssFeedUrl(): string {
+        const store = this.getStore();
+        return store.get('rssFeedUrl') as string;
+    }
+
+    setRssFeedUrl(url: string): void {
+        const store = this.getStore();
+        store.set('rssFeedUrl', url);
     }
 
     // GEMINI KEY MANAGEMENT

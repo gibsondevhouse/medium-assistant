@@ -8,6 +8,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 import { GeminiSDKService } from './services/gemini';
 import { SettingsService } from './services/settings';
+import { RssService } from './services/rss';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -40,8 +41,28 @@ function createWindow() {
 }
 
 function startPythonBackend() {
-  const pythonScriptPath = path.join(__dirname, '../python_backend/main.py');
-  pythonProcess = spawn('python3', ['-u', pythonScriptPath]);
+  let executablePath = '';
+  let args: string[] = [];
+
+  if (isDev) {
+    executablePath = 'python3';
+    args = ['-u', path.join(__dirname, '../python_backend/main.py')];
+  } else {
+    // In production, use the bundled executable
+    // It should be in extraResources
+    const bundledPath = path.join(process.resourcesPath, 'deep-scribe-backend');
+    executablePath = bundledPath;
+    // No args needed for the standalone executable unless main.py expects them
+  }
+
+  console.log(`[Main] Spawning backend: ${executablePath} ${args.join(' ')}`);
+
+  if (!isDev && !fs.existsSync(executablePath)) {
+    console.error(`[Main] Backend executable not found at: ${executablePath}`);
+    return;
+  }
+
+  pythonProcess = spawn(executablePath, args);
 
   pythonProcess.stdout?.on('data', (data) => {
     console.log(`Python stdout: ${data}`);
@@ -153,65 +174,23 @@ ipcMain.handle('settings:both-keys-set', async () => {
   return settingsService.bothKeysSet();
 });
 
-// Helper for local timestamp (YYYY-MM-DD HH:mm:ss.SSS)
-function getLocalTimestamp() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  const ms = String(now.getMilliseconds()).padStart(3, '0');
-  return {
-    str: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`,
-    filename: `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`
-  };
-}
+ipcMain.handle('settings:get-rss-url', async () => {
+  return settingsService.getRssFeedUrl();
+});
 
-function formatLogArg(arg: any): string {
-  if (arg instanceof Error || (arg && typeof arg === 'object' && 'message' in arg && 'stack' in arg)) {
-    return JSON.stringify({
-      name: arg.name || 'Error',
-      message: arg.message,
-      stack: arg.stack,
-      ...arg // Include other properties
-    });
-  }
-  if (typeof arg === 'object') {
-    try {
-      return JSON.stringify(arg);
-    } catch (e) {
-      return '[Circular/Unserializable]';
-    }
-  }
-  return String(arg);
-}
+ipcMain.handle('settings:set-rss-url', async (_, url: string) => {
+  return settingsService.setRssFeedUrl(url);
+});
 
-// Generate a unique log file for this session
-const logDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(logDir)) {
-  try {
-    fs.mkdirSync(logDir);
-  } catch (e) {
-    console.error("Failed to create log directory:", e);
-  }
-}
+// --- RSS Service ---
+const rssService = new RssService();
 
-// Format: debug-YYYY-MM-DD-HH-mm-ss.log (Local Time)
-const sessionLogFile = path.join(logDir, `debug-${getLocalTimestamp().filename}.log`);
-console.log(`[Main] Logging to: ${sessionLogFile}`);
+ipcMain.handle('rss:fetch', async (_, url: string) => {
+  return rssService.fetchFeed(url);
+});
+
+import { logger } from './utils/logger';
 
 ipcMain.on('logger:log', (event, level, message, ...args) => {
-  const timestamp = getLocalTimestamp().str;
-
-  // Format message if it's an object (like an Error passed as first arg)
-  const formattedMessage = typeof message === 'object' ? formatLogArg(message) : message;
-  const formattedArgs = args.map(formatLogArg).join(' ');
-
-  const logLine = `[${timestamp}] [${level.toUpperCase()}] ${formattedMessage} ${formattedArgs}\n`;
-
-  fs.appendFile(sessionLogFile, logLine, (err: NodeJS.ErrnoException | null) => {
-    if (err) console.error("Failed to write to log file:", err);
-  });
+  logger.log(level, message, ...args);
 });

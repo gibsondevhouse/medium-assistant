@@ -17,6 +17,7 @@ import { ApiKeyInput } from './ApiKeyInput';
 import {
     getGeminiKey, setGeminiKey,
     getGNewsKey, setGNewsKey,
+    getRssUrl, setRssUrl,
     maskKey, clearAllKeys,
     testGeminiKey, testGNewsKey
 } from '../../services/settings-keys';
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const [activeTab, setActiveTab] = useState<TabType>('api');
     const [geminiKey, setGeminiKeyDisplay] = useState<string | undefined>();
     const [gnewsKey, setGnewsKeyDisplay] = useState<string | undefined>();
+    const [rssUrl, setRssUrlDisplay] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [testResult, setTestResult] = useState<{ key: string; success: boolean; message: string } | null>(null);
 
@@ -61,12 +63,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const loadKeys = async () => {
         const gKey = await getGeminiKey();
         const nKey = await getGNewsKey();
+        const rss = await getRssUrl();
 
         if (gKey) setGeminiKeyDisplay(await maskKey(gKey));
         else setGeminiKeyDisplay(undefined);
 
         if (nKey) setGnewsKeyDisplay(await maskKey(nKey));
         else setGnewsKeyDisplay(undefined);
+
+        if (rss) setRssUrlDisplay(rss);
     };
 
     useEffect(() => {
@@ -91,6 +96,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         setLoading(true);
         try {
             await setGNewsKey(key);
+            await loadKeys();
+            if (onKeysUpdated) onKeysUpdated();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRssSave = async (url: string) => {
+        setLoading(true);
+        try {
+            await setRssUrl(url);
             await loadKeys();
             if (onKeysUpdated) onKeysUpdated();
         } finally {
@@ -170,11 +186,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                                            activeTab === tab.id
-                                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                                : 'text-[#8b949e] hover:text-white hover:bg-[#30363d]/30'
-                                        }`}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                            : 'text-[#8b949e] hover:text-white hover:bg-[#30363d]/30'
+                                            }`}
                                     >
                                         <Icon className="w-4 h-4" />
                                         {tab.label}
@@ -187,11 +202,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-6">
                         {testResult && (
-                            <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 text-sm ${
-                                testResult.success
-                                    ? 'bg-green-900/20 border border-green-500/30 text-green-300'
-                                    : 'bg-red-900/20 border border-red-500/30 text-red-300'
-                            }`}>
+                            <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 text-sm ${testResult.success
+                                ? 'bg-green-900/20 border border-green-500/30 text-green-300'
+                                : 'bg-red-900/20 border border-red-500/30 text-red-300'
+                                }`}>
                                 {testResult.success ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
                                 {testResult.message}
                             </div>
@@ -419,6 +433,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                                 </label>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* RSS Feed URL */}
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <h4 className="text-sm font-medium text-white">RSS Feed URL</h4>
+                                            <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">Primary Feed</span>
+                                        </div>
+                                        <ApiKeyInput
+                                            label="Feed Configuration"
+                                            placeholder="https://medium.com/feed/tag/technology"
+                                            currentValue={rssUrl}
+                                            getKeyUrl="https://medium.com"
+                                            onSave={handleRssSave}
+                                            isLoading={loading}
+                                        />
+                                        <p className="mt-2 text-xs text-[#8b949e]">The primary RSS feed loaded on application start.</p>
                                     </div>
                                 </div>
                             </div>

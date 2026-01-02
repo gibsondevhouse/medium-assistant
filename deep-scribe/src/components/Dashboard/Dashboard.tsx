@@ -112,11 +112,18 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
       {/* Tab Bar */}
       <div className="flex items-center gap-1 px-4 py-3 bg-[#0d1117] border-b border-[#30363d] overflow-x-auto">
         {tabs.map((tab) => (
-          <button
+          <div
             key={tab.id}
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTabId(tab.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setActiveTabId(tab.id);
+              }
+            }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all whitespace-nowrap border-b-2 relative",
+              "flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all whitespace-nowrap border-b-2 relative cursor-pointer select-none",
               activeTabId === tab.id
                 ? "text-white bg-[#161b22] border-b-blue-500"
                 : "text-[#8b949e] bg-[#0d1117] border-b-transparent hover:text-white hover:bg-[#161b22]/50"
@@ -130,11 +137,12 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
                   closeTab(tab.id);
                 }}
                 className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+                title="Close tab"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
-          </button>
+          </div>
         ))}
 
         {/* Add Tab Button */}
