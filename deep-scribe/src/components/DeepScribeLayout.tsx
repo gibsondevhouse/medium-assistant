@@ -15,7 +15,7 @@ export function DeepScribeLayout({ sidebar, editor, metadata }: DeepScribeLayout
       </div>
 
       {/* Center Editor: 1fr */}
-      <div className="flex flex-col relative min-w-0">
+      <div className="flex flex-col relative min-w-0 h-full overflow-hidden">
         {editor}
       </div>
 

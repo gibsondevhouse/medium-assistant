@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  // Lucide icons removed per Swiss Style "NO icons" constraint
+  Cog
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DeepScribeLayout } from './components/DeepScribeLayout';
-import { NewsFeed } from './components/NewsFeed';
+import { Dashboard } from './components/Dashboard/Dashboard';
+import { SettingsModal } from './components/Settings/SettingsModal';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,13 +14,13 @@ function cn(...inputs: ClassValue[]) {
 
 function App() {
   const [backendStatus, setBackendStatus] = useState('Connecting...');
-  const [activeTab, setActiveTab] = useState('Drafts');
-  const [topics, setTopics] = useState([
-    { id: 't1', name: 'Tech & Coding', view: 'topic-dashboard' },
-    { id: 't2', name: 'Productivity', view: 'topic-dashboard' },
-    { id: 't3', name: 'Personal Essays', view: 'topic-dashboard' },
-    { id: 't4', name: 'Crypto Trends', view: 'topic-dashboard' },
-  ]);
+
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+
+  const [activeView, setActiveView] = useState('Dashboard');
+
+
 
   useEffect(() => {
     async function checkConnection() {
@@ -44,9 +45,16 @@ function App() {
     }
 
     checkConnection();
+
+    // Initial check - just logging for now
+    if (window.electronAPI?.settings) {
+      window.electronAPI.settings.bothKeysSet().then((set) => {
+        console.log("Startup Auth Check:", set ? "Keys Present" : "No Keys (Lazy Mode)");
+      });
+    } else {
+      console.warn("Electron API not available (App.tsx)");
+    }
   }, []);
-
-
 
   const Sidebar = (
     <div className="w-full h-full bg-[#0d1117] flex flex-col overflow-hidden font-sans">
@@ -59,41 +67,39 @@ function App() {
 
       <nav className="flex-1 overflow-y-auto min-h-0 px-8 pb-8 space-y-10">
 
-        {/* 2. SECTION A: APPS (Primary Nav) */}
+        {/* 2. SECTION A: HOME (New Primary) */}
         <div className="space-y-4">
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Apps</h3>
+          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Home</h3>
           <div className="flex flex-col space-y-2">
-            {['Chat', 'Images', 'Research', 'Articles'].map((app) => (
-              <button
-                key={app}
-                className="text-left text-sm text-[15px] text-[#8b949e] font-medium hover:text-white hover:translate-x-1 transition-all duration-200"
-              >
-                {app}
-              </button>
-            ))}
+
+            {/* Dashboard */}
+            <button
+              onClick={() => setActiveView('Dashboard')}
+              className={cn(
+                "text-left text-sm text-[15px] font-medium transition-all duration-200",
+                activeView === 'Dashboard'
+                  ? "text-white translate-x-1"
+                  : "text-[#8b949e] hover:text-white hover:translate-x-1"
+              )}
+            >
+              Dashboard
+            </button>
+
+            {/* Settings (Moved here) */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className={cn(
+                "text-left text-sm text-[15px] font-medium transition-all duration-200 text-[#8b949e] hover:text-white hover:translate-x-1",
+                // No active state visual for settings strictly, usually it opens a modal
+              )}
+            >
+              Settings
+            </button>
+
           </div>
         </div>
 
-        {/* 3. SECTION B: TOPICS (Filters) */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Topics</h3>
-          <div className="flex flex-col space-y-2">
-            {topics.map((topic) => (
-              <button
-                key={topic.id}
-                onClick={() => setActiveTab(topic.name)}
-                className={cn(
-                  "text-left text-sm transition-all duration-200 hover:translate-x-1",
-                  activeTab === topic.name
-                    ? "text-white font-bold"
-                    : "text-[#8b949e] hover:text-white"
-                )}
-              >
-                #{topic.name.replace(/\s+/g, '')}
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         {/* 4. SECTION C: RECENT ARTICLES (State) */}
         <div className="space-y-4">
@@ -114,9 +120,12 @@ function App() {
             ))}
           </div>
         </div>
+
+
+
       </nav>
 
-      {/* 5. BOTTOM: CHATS (Communication Module) */}
+      {/* 6. BOTTOM: CHATS (Communication Module) */}
       <div className="p-8 shrink-0 bg-[#0d1117] border-t border-[#30363d]/30">
         <div className="space-y-4">
           <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Messages</h3>
@@ -132,8 +141,6 @@ function App() {
       </div>
     </div>
   );
-
-  /* Editor replaced by NewsFeed component */
 
   const Metadata = (
     <div className="w-full h-full bg-[#0a0a0a] border-l border-white/5 flex flex-col p-6 overflow-y-auto">
@@ -218,21 +225,41 @@ function App() {
     </div>
   );
 
+
+
+
+
+  // We still check for keys to update UI state if needed, but we don't block.
+  // const [isAuthenticated, setIsAuthenticated] = useState(false); // Removed gating state
+
+
+
   return (
-    <DeepScribeLayout
-      sidebar={Sidebar}
-      editor={<NewsFeed />}
-      metadata={Metadata}
-    />
+    <>
+      {/* AuthOverlay removed for Lazy Auth */}
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onKeysUpdated={() => {
+          console.log("Keys updated");
+          // Force re-render or notify components?
+          // For now, components check on mount/interaction.
+        }}
+      // "Done" button still validates, but closing doesn't strictly depend on it for app access anymore,
+      // though SettingsModal internal logic might still prefer valid keys.
+      // Actually, let's allow closing even if keys aren't set in this "Lazy" mode?
+      // The current SettingsModal logic enforces valid keys to "Done" (save). 
+      // User can still click "Cancel" or "Close" if we add that, or just use "Done" when they are ready.
+      />
+
+      <DeepScribeLayout
+        sidebar={Sidebar}
+        editor={<Dashboard onOpenSettings={() => setShowSettings(true)} />}
+        metadata={Metadata}
+      />
+    </>
   );
 }
 
 export default App;
-
-declare global {
-  interface Window {
-    electronAPI: {
-      getApiPort: () => Promise<string>;
-    }
-  }
-}

@@ -1,3 +1,111 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global Layout Reset */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Custom Scrollbar Styling */
+/* Hide default scrollbars everywhere */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 148, 158, 0.5);
+  border-radius: 4px;
+  min-height: 40px; /* Fixed minimum height */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 148, 158, 0.8);
+}
+
+/* Horizontal scrollbar specific - reduce width */
+::-webkit-scrollbar-thumb:horizontal {
+  min-width: 20px; /* Narrow width for horizontal scrollbar */
+}
+
+/* Firefox scrollbar styling */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 148, 158, 0.5) transparent;
+}
+
+/* Utility class to hide scrollbar while keeping functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Hide scrollbar but keep scroll functionality - ultra thin */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Custom scrollbar for horizontal scroll containers */
+.custom-scrollbar-horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: rgba(139, 148, 158, 0.5);
+  border-radius: 4px;
+  min-width: 20px; /* Narrow width for horizontal scrollbar */
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 148, 158, 0.8);
+}
+
+/* Custom scrollbar for vertical scroll containers */
+.custom-scrollbar-vertical {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.custom-scrollbar-vertical::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar-vertical::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-vertical::-webkit-scrollbar-thumb {
+  background: rgba(139, 148, 158, 0.5);
+  border-radius: 4px;
+  min-height: 40px; /* Fixed minimum height for vertical */
+}
+
+.custom-scrollbar-vertical::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 148, 158, 0.8);
+}
