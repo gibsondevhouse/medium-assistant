@@ -145,18 +145,28 @@ function App() {
               <div className="text-sm text-gray-600 italic">No drafts yet</div>
             ) : (
               drafts.map((draft) => (
-                <button
-                  key={draft.id}
-                  onClick={() => handleSelectDraft(draft.id)}
-                  className={cn(
-                    "text-left text-sm transition-all duration-200 truncate",
-                    activeDraft?.id === draft.id && activeView === 'Editor'
-                      ? "text-white translate-x-1"
-                      : "text-[#8b949e] hover:text-white hover:translate-x-1"
+                <div key={draft.id} className="flex flex-col">
+                  <button
+                    onClick={() => handleSelectDraft(draft.id)}
+                    className={cn(
+                      "text-left text-sm transition-all duration-200 truncate",
+                      activeDraft?.id === draft.id && activeView === 'Editor'
+                        ? "text-white translate-x-1"
+                        : "text-[#8b949e] hover:text-white hover:translate-x-1"
+                    )}
+                  >
+                    {draft.title || 'Untitled'}
+                  </button>
+                  {draft.tags && draft.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {draft.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] text-gray-600 bg-gray-800 px-1 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   )}
-                >
-                  {draft.title || 'Untitled'}
-                </button>
+                </div>
               ))
             )}
           </div>

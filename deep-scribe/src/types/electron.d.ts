@@ -29,10 +29,11 @@ declare global {
                 bothKeysSet: () => Promise<boolean>;
             };
             drafts: {
-                list: () => Promise<{ id: string; title: string; lastModified: number; preview: string; filepath: string }[]>;
+                list: () => Promise<{ id: string; title: string; tags: string[]; version: number; lastModified: number; preview: string; filepath: string }[]>;
                 read: (id: string) => Promise<{ id: string; content: string } | null>;
                 save: (id: string, content: string) => Promise<boolean>;
-                create: (title: string) => Promise<{ id: string; title: string; lastModified: number; preview: string; filepath: string } | null>;
+                updateMetadata: (id: string, metadata: any) => Promise<boolean>;
+                create: (title: string) => Promise<{ id: string; title: string; tags: string[]; version: number; lastModified: number; preview: string; filepath: string } | null>;
                 delete: (id: string) => Promise<boolean>;
             };
         };

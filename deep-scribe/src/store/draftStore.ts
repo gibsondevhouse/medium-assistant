@@ -63,8 +63,7 @@ export const useDraftStore = create<DraftStore>((set, get) => ({
 
         try {
             await electron.drafts.save(activeDraft.id, content);
-            // Ideally we update the local state lastModified and preview too
-            // For now, reloading list is safest to sync metadata
+            // Reload metadata to capture updated lastModified or version if backend handles it
             await get().loadDrafts();
 
             // Update active draft content in store
@@ -73,6 +72,26 @@ export const useDraftStore = create<DraftStore>((set, get) => ({
             }));
         } catch (err: any) {
             console.error(err);
+            set({ error: err.message });
+        }
+    },
+
+    updateDraftMetadata: async (id: string, metadata: Partial<Draft>) => {
+        try {
+            const success = await electron.drafts.updateMetadata(id, metadata);
+            if (success) {
+                await get().loadDrafts();
+                const { activeDraft } = get();
+                if (activeDraft && activeDraft.id === id) {
+                    set({
+                        activeDraft: {
+                            ...activeDraft,
+                            ...metadata
+                        }
+                    });
+                }
+            }
+        } catch (err: any) {
             set({ error: err.message });
         }
     },

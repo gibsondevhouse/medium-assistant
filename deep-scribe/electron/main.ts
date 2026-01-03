@@ -220,6 +220,10 @@ ipcMain.handle('drafts:create', async (_, title: string) => {
   return draftService.createDraft(title);
 });
 
+ipcMain.handle('drafts:update-metadata', async (_, id: string, metadata: any) => {
+  return draftService.updateMetadata(id, metadata);
+});
+
 ipcMain.handle('drafts:delete', async (_, id: string) => {
   return draftService.deleteDraft(id);
 });
