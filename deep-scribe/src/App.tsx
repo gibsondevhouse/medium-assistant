@@ -9,6 +9,7 @@ import { DeepScribeLayout } from './components/DeepScribeLayout';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { Editor } from './components/Editor/Editor';
+import { ChatPanel } from './components/Chat/ChatPanel';
 import { useDraftStore } from './store/draftStore';
 
 function cn(...inputs: ClassValue[]) {
@@ -42,6 +43,7 @@ function App() {
   }, [activeProvider]);
 
   const [activeView, setActiveView] = useState('Dashboard');
+  const [rightPanelMode, setRightPanelMode] = useState<'metadata' | 'chat'>('metadata');
 
   useEffect(() => {
     async function checkConnection() {
@@ -187,12 +189,15 @@ function App() {
       <div className="p-8 shrink-0 bg-[#0d1117] border-t border-[#30363d]/30">
         <div className="space-y-4">
           <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Messages</h3>
-          <button className="block w-full text-left group">
-            <div className="text-sm font-bold text-white group-hover:translate-x-1 transition-transform duration-200">
+          <button
+            className="block w-full text-left group"
+            onClick={() => setRightPanelMode(rightPanelMode === 'chat' ? 'metadata' : 'chat')}
+          >
+            <div className={`text-sm font-bold group-hover:translate-x-1 transition-transform duration-200 ${rightPanelMode === 'chat' ? 'text-blue-400' : 'text-white'}`}>
               Editor Bot
             </div>
             <div className="text-xs text-[#8b949e] mt-1 truncate group-hover:text-gray-300 transition-colors">
-              Feedback on Chapter 3...
+              Click to toggle chat...
             </div>
           </button>
         </div>
@@ -316,7 +321,7 @@ function App() {
       <DeepScribeLayout
         sidebar={Sidebar}
         editor={activeView === 'Editor' ? <Editor /> : <Dashboard onOpenSettings={() => setShowSettings(true)} />}
-        metadata={Metadata}
+        metadata={rightPanelMode === 'chat' ? <ChatPanel /> : Metadata}
       />
     </>
   );
