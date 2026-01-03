@@ -1,0 +1,1 @@
+export { ChatWithNotes } from './ChatWithNotes';

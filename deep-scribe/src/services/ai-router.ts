@@ -1,9 +1,4 @@
-import {
-    getGeminiKey,
-    getAnthropicKey,
-    getDeepSeekKey,
-    getPerplexityKey
-} from './settings-keys';
+import { getGeminiKey } from './settings-keys';
 
 interface AiRouterResponse {
     success: boolean;
@@ -20,35 +15,25 @@ export class AiRouterService {
         return await window.electronAPI.getApiPort();
     }
 
-    async generateContent(prompt: string, provider: string, model: string): Promise<AiRouterResponse> {
+    async generateContent(prompt: string, model: string = 'gemini-2.5-flash'): Promise<AiRouterResponse> {
         try {
             const port = await this.getApiPort();
             if (!port) {
                 return { success: false, error: "Backend server not reachable (port not found)" };
             }
 
-            // Gather all keys (backend will pick the right one)
-            // Ideally we could validiate here if the key for the *selected* provider exists
             const geminiKey = await getGeminiKey();
-            const anthropicKey = await getAnthropicKey();
-            const deepseekKey = await getDeepSeekKey();
-            const perplexityKey = await getPerplexityKey();
-
-            const apiKeys = {
-                gemini: geminiKey,
-                anthropic: anthropicKey,
-                deepseek: deepseekKey,
-                perplexity: perplexityKey
-            };
+            if (!geminiKey) {
+                return { success: false, error: "Gemini API key not configured. Please add your key in Settings." };
+            }
 
             const payload = {
                 prompt,
-                provider,
                 model,
-                api_keys: apiKeys
+                api_key: geminiKey
             };
 
-            console.log(`[AiRouter] Sending request to Provider: ${provider}, Model: ${model}`);
+            console.log(`[AiRouter] Sending request to Gemini, Model: ${model}`);
 
             const response = await fetch(`http://127.0.0.1:${port}/api/generate`, {
                 method: 'POST',

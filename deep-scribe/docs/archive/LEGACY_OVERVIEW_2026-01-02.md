@@ -1,4 +1,9 @@
-# Deep Scribe - Agents Configuration
+# [ARCHIVED] Deep Scribe - Legacy Project Overview
+>
+> **Note:** This document describes the legacy multi-provider architecture.
+> **Current Context:** See `README.md` and `docs/architecture/GEMINI_ECOSYSTEM.md`.
+
+## Deep Scribe - Agents Configuration
 
 A desktop application for authors to write, research, and publish content. Built with Electron + React + TypeScript frontend and Python FastAPI backend using the sidecar pattern.
 

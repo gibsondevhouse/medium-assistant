@@ -5,7 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import { Markdown } from 'tiptap-markdown';
 import { useDraftStore } from '../../store/draftStore';
-import { Save, Tag, Clock } from 'lucide-react';
+import { Save, Tag, Clock, Download, Loader2, Send, ExternalLink, ChevronDown, FileText, FileJson, FileType } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 
 export const Editor: React.FC = () => {
@@ -15,6 +15,10 @@ export const Editor: React.FC = () => {
     const [title, setTitle] = useState('');
     const [tags, setTags] = useState(''); // Comma separated string for editing
     const [isSaving, setIsSaving] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     const editor = useEditor({
         extensions: [
@@ -133,6 +137,160 @@ export const Editor: React.FC = () => {
         }
     }, [debouncedTags, activeDraft, updateDraftMetadata, loadedDraftId]);
 
+    // Publish to Medium handler
+    const handlePublishToMedium = async () => {
+        if (!editor || !activeDraft) return;
+
+        // Check if Medium token is configured
+        const hasToken = await window.electronAPI.settings.hasMediumToken();
+        if (!hasToken) {
+            alert('Please configure your Medium Integration Token in Settings first.');
+            return;
+        }
+
+        const confirmPublish = confirm(
+            'This will publish your article as a draft on Medium. Continue?'
+        );
+        if (!confirmPublish) return;
+
+        setIsPublishing(true);
+        setPublishedUrl(null);
+
+        try {
+            const htmlContent = editor.getHTML();
+            const currentTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+
+            const result = await window.electronAPI.medium.publish(
+                title || 'Untitled',
+                htmlContent,
+                currentTags,
+                'draft' // Always publish as draft first for safety
+            );
+
+            if (result.success && result.url) {
+                setPublishedUrl(result.url);
+                alert(`Published successfully! Opening Medium...`);
+                window.electronAPI.openExternal(result.url);
+            } else {
+                alert(`Publish failed: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Publish error:', error);
+            alert('Failed to publish to Medium');
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    // PDF Export handler
+    const handleExportPDF = async () => {
+        if (!editor || !activeDraft) return;
+
+        setIsExporting(true);
+        setShowExportMenu(false);
+        try {
+            // Get HTML content from editor
+            const htmlContent = editor.getHTML();
+            const result = await window.electronAPI.drafts.exportToPDF(title || 'Untitled', htmlContent);
+
+            if (!result.success && result.error !== 'Export cancelled') {
+                console.error('PDF Export failed:', result.error);
+                alert(`Export failed: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('PDF Export error:', error);
+            alert('Failed to export PDF');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // HTML Export handler
+    const handleExportHTML = () => {
+        if (!editor || !activeDraft) return;
+
+        setShowExportMenu(false);
+        const htmlContent = editor.getHTML();
+        const sanitizedTitle = (title || 'Untitled').replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+
+        // Create full HTML document with styling
+        const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${sanitizedTitle}</title>
+    <style>
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.8;
+            color: #1a1a1a;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        h1 { font-size: 2.5em; font-weight: 700; margin-bottom: 0.5em; }
+        h2 { font-size: 1.75em; margin-top: 1.5em; }
+        h3 { font-size: 1.25em; margin-top: 1.25em; }
+        p { margin-bottom: 1.25em; }
+        blockquote { border-left: 4px solid #e5e5e5; padding-left: 1em; margin-left: 0; color: #666; font-style: italic; }
+        code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+        pre { background: #f5f5f5; padding: 1em; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>${sanitizedTitle}</h1>
+    ${htmlContent}
+</body>
+</html>`;
+
+        // Create blob and download
+        const blob = new Blob([fullHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sanitizedTitle}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // JSON Export handler
+    const handleExportJSON = () => {
+        if (!editor || !activeDraft) return;
+
+        setShowExportMenu(false);
+        const htmlContent = editor.getHTML();
+        const markdownContent = (editor.storage as any).markdown.getMarkdown();
+        const currentTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const sanitizedTitle = (title || 'Untitled').replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+
+        const exportData = {
+            title: title || 'Untitled',
+            tags: currentTags,
+            content: {
+                markdown: markdownContent,
+                html: htmlContent
+            },
+            metadata: {
+                id: activeDraft.id,
+                exportedAt: new Date().toISOString(),
+                version: activeDraft.version || 1
+            }
+        };
+
+        // Create blob and download
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sanitizedTitle}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     if (isLoading && !activeDraft) return <div className="flex h-full items-center justify-center text-gray-500">Loading...</div>;
     if (error) return <div className="flex h-full items-center justify-center text-red-500">Error: {error}</div>;
@@ -171,6 +329,75 @@ export const Editor: React.FC = () => {
                             {isSaving ? 'Saving...' : 'Saved'}
                         </span>
                     </div>
+
+                    {/* Export Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            disabled={isExporting}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-all disabled:opacity-50"
+                            title="Export options"
+                        >
+                            {isExporting ? (
+                                <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                                <Download size={14} />
+                            )}
+                            <span>Export</span>
+                            <ChevronDown size={12} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showExportMenu && (
+                            <>
+                                {/* Backdrop to close menu */}
+                                <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setShowExportMenu(false)}
+                                />
+                                {/* Dropdown menu */}
+                                <div className="absolute top-full right-0 mt-1 w-44 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <button
+                                        onClick={handleExportPDF}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                    >
+                                        <FileType size={16} />
+                                        <span>Export as PDF</span>
+                                    </button>
+                                    <button
+                                        onClick={handleExportHTML}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                    >
+                                        <FileText size={16} />
+                                        <span>Export as HTML</span>
+                                    </button>
+                                    <button
+                                        onClick={handleExportJSON}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                    >
+                                        <FileJson size={16} />
+                                        <span>Export as JSON</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Publish to Medium Button */}
+                    <button
+                        onClick={handlePublishToMedium}
+                        disabled={isPublishing}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/30 transition-all disabled:opacity-50"
+                        title="Publish to Medium"
+                    >
+                        {isPublishing ? (
+                            <Loader2 size={14} className="animate-spin" />
+                        ) : publishedUrl ? (
+                            <ExternalLink size={14} />
+                        ) : (
+                            <Send size={14} />
+                        )}
+                        <span>{publishedUrl ? 'Published' : 'Medium'}</span>
+                    </button>
                 </div>
             </div>
 

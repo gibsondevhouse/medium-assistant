@@ -12,22 +12,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   settings: {
     getGeminiKey: () => ipcRenderer.invoke('settings:get-gemini-key'),
     setGeminiKey: (key: string) => ipcRenderer.invoke('settings:set-gemini-key', key),
-
+    testGeminiKey: (key?: string) => ipcRenderer.invoke('settings:test-gemini-key', key),
+    clearGeminiKey: () => ipcRenderer.invoke('settings:clear-gemini-key'),
+    hasGeminiKey: () => ipcRenderer.invoke('settings:has-gemini-key'),
     getRssUrl: () => ipcRenderer.invoke('settings:get-rss-url'),
     setRssUrl: (url: string) => ipcRenderer.invoke('settings:set-rss-url', url),
-    getAnthropicKey: () => ipcRenderer.invoke('settings:get-anthropic-key'),
-    setAnthropicKey: (key: string) => ipcRenderer.invoke('settings:set-anthropic-key', key),
-    getDeepSeekKey: () => ipcRenderer.invoke('settings:get-deepseek-key'),
-    setDeepSeekKey: (key: string) => ipcRenderer.invoke('settings:set-deepseek-key', key),
-    getPerplexityKey: () => ipcRenderer.invoke('settings:get-perplexity-key'),
-    setPerplexityKey: (key: string) => ipcRenderer.invoke('settings:set-perplexity-key', key),
-    getOpenRouterKey: () => ipcRenderer.invoke('settings:get-openrouter-key'),
-    setOpenRouterKey: (key: string) => ipcRenderer.invoke('settings:set-openrouter-key', key),
-    getOpenAIKey: () => ipcRenderer.invoke('settings:get-openai-key'),
-    setOpenAIKey: (key: string) => ipcRenderer.invoke('settings:set-openai-key', key),
-    testGeminiKey: (key?: string) => ipcRenderer.invoke('settings:test-gemini-key', key),
-    clearAllKeys: () => ipcRenderer.invoke('settings:clear-all-keys'),
-    bothKeysSet: () => ipcRenderer.invoke('settings:both-keys-set'),
+    // Medium Token
+    getMediumToken: () => ipcRenderer.invoke('settings:get-medium-token'),
+    setMediumToken: (token: string) => ipcRenderer.invoke('settings:set-medium-token', token),
+    hasMediumToken: () => ipcRenderer.invoke('settings:has-medium-token'),
+    clearMediumToken: () => ipcRenderer.invoke('settings:clear-medium-token'),
+  },
+  medium: {
+    publish: (title: string, content: string, tags: string[], publishStatus: string) =>
+      ipcRenderer.invoke('medium:publish', title, content, tags, publishStatus),
   },
   drafts: {
     list: () => ipcRenderer.invoke('drafts:list'),
@@ -36,10 +34,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateMetadata: (id: string, metadata: any) => ipcRenderer.invoke('drafts:update-metadata', id, metadata),
     create: (title: string, initialContent?: string, tags?: string[]) => ipcRenderer.invoke('drafts:create', title, initialContent, tags),
     delete: (id: string) => ipcRenderer.invoke('drafts:delete', id),
+    exportToPDF: (title: string, htmlContent: string) => ipcRenderer.invoke('drafts:export-to-pdf', title, htmlContent),
   },
   research: {
     sourceRun: (query: string) => ipcRenderer.invoke('research:source-run', query),
     researchRun: (hypotheses: any[]) => ipcRenderer.invoke('research:research-run', hypotheses),
     creativeRun: (findings: any[]) => ipcRenderer.invoke('research:creative-run', findings),
+  },
+  knowledgeBase: {
+    addDocument: (content: string, source: string, title: string, docType?: string, metadata?: any) =>
+      ipcRenderer.invoke('kb:add-document', content, source, title, docType, metadata),
+    addResearch: (topic: string, subtopic: string, findings: string, researchId: string) =>
+      ipcRenderer.invoke('kb:add-research', topic, subtopic, findings, researchId),
+    addReport: (topic: string, report: string, researchId: string) =>
+      ipcRenderer.invoke('kb:add-report', topic, report, researchId),
+    query: (query: string, nResults?: number, docType?: string) =>
+      ipcRenderer.invoke('kb:query', query, nResults, docType),
+    getDocuments: (limit?: number) =>
+      ipcRenderer.invoke('kb:get-documents', limit),
+    deleteDocument: (docId: string) =>
+      ipcRenderer.invoke('kb:delete-document', docId),
+    clear: () =>
+      ipcRenderer.invoke('kb:clear'),
+    getStats: () =>
+      ipcRenderer.invoke('kb:stats'),
+    chat: (message: string, nContext?: number) =>
+      ipcRenderer.invoke('kb:chat', message, nContext),
   }
 });

@@ -22,7 +22,6 @@ export function TopicGraph() {
     } = useResearchStore();
 
     const startDeepResearch = async () => {
-        // apiKey not needed for centralized router
         setStatus('researching');
 
         // 1. Trigger research for all subnodes in parallel
@@ -34,7 +33,7 @@ export function TopicGraph() {
         try {
             const researchPromises = subnodes.map(async (node) => {
                 try {
-                    const findings = await researchSubtopic('ignored-key', node.data.label, query);
+                    const findings = await researchSubtopic(node.data.label, query);
                     updateNodeStatus(node.id, 'done', findings);
                     return { topic: node.data.label, content: findings };
                 } catch (e) {
@@ -49,7 +48,7 @@ export function TopicGraph() {
             // 2. Synthesize
             if (results.length > 0) {
                 setStatus('synthesizing');
-                const report = await synthesizeReport('ignored-key', query, results);
+                const report = await synthesizeReport(query, results);
                 setFinalReport(report);
                 setStatus('complete');
             } else {
@@ -78,9 +77,9 @@ export function TopicGraph() {
                 <Controls className="bg-[#1e1e1e] border-white/10" />
             </ReactFlow>
 
-            {/* Floating Action Bar */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
-                {status === 'reviewing_plan' && (
+            {/* Floating Action Bar - Now integrated into TopicGraph since it's specific to reviewing_plan state */}
+            {status === 'reviewing_plan' && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
                     <button
                         onClick={startDeepResearch}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-lg shadow-blue-900/40 transition-all hover:scale-105"
@@ -88,22 +87,28 @@ export function TopicGraph() {
                         <Play className="w-4 h-4 fill-current" />
                         Start Deep Research
                     </button>
-                )}
+                </div>
+            )}
 
-                {status === 'researching' && (
+            {/* Progress indicator during research */}
+            {status === 'researching' && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
                     <div className="flex items-center gap-3 bg-[#1e1e1e] text-white px-6 py-3 rounded-full border border-white/10 shadow-xl">
                         <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
                         <span className="text-sm font-medium">Researching {nodes.filter(n => n.data.status === 'done').length}/{nodes.length - 1} topics...</span>
                     </div>
-                )}
+                </div>
+            )}
 
-                {status === 'synthesizing' && (
+            {/* Synthesizing indicator */}
+            {status === 'synthesizing' && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
                     <div className="flex items-center gap-3 bg-[#1e1e1e] text-white px-6 py-3 rounded-full border border-white/10 shadow-xl animate-pulse">
                         <FileText className="w-4 h-4 text-purple-400" />
                         <span className="text-sm font-medium">Writing Final Report...</span>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

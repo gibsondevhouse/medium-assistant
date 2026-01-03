@@ -25,7 +25,7 @@ interface MediumArticle {
 }
 
 interface ArticlesFeedProps {
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {

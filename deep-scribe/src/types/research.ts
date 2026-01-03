@@ -1,12 +1,15 @@
-
 import { Edge, Node } from 'reactflow';
 
 export type ResearchStatus =
     | 'idle'
-    | 'source_running'      // Level 1: Gathering context & hypotheses
-    | 'hypothesis_review'   // User selects hypotheses
-    | 'research_running'    // Level 2: Parallel deep dive
-    | 'outlines_review'     // Level 3: User reviews generated outlines
+    | 'surveying'            // Generating topic map
+    | 'reviewing_plan'       // User reviews topic breakdown
+    | 'source_running'       // Level 1: Gathering context & hypotheses
+    | 'hypothesis_review'    // User selects hypotheses
+    | 'researching'          // Level 2: Parallel deep dive on subtopics
+    | 'research_running'     // (alias for researching)
+    | 'synthesizing'         // Generating final report
+    | 'outlines_review'      // Level 3: User reviews generated outlines
     | 'complete'
     | 'error';
 
@@ -51,11 +54,12 @@ export interface ResearchSession {
     createdAt: string;
 }
 
-// Keep Node types for graph visualization if we still use it, 
-// but the core logic is now driven by the lists above.
+// Node types for ReactFlow graph visualization
 export interface ResearchNodeData {
     label: string;
     status: 'pending' | 'loading' | 'done' | 'error';
     findings?: string;
+    subtopicQuery?: string;
 }
+
 export type TopicNode = Node<ResearchNodeData>;

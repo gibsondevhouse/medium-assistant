@@ -51,19 +51,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
             USER QUERY: ${content}`;
 
-            // Determine provider/model from settings (using local storage as fallback or store)
-            // Ideally we use the same helper as TopicGraph or a centralized settings hook.
-            // For now, let's grab from localStorage as a simple bridge, consistent with existing code.
+            // Get model from settings (Gemini-only now)
             const storedSettings = localStorage.getItem('deep-scribe-settings');
-            let provider = localStorage.getItem('activeProvider') || 'gemini';
-            let model = 'gemini-1.5-pro';
+            let model = 'gemini-2.5-flash';
 
             if (storedSettings) {
                 const parsed = JSON.parse(storedSettings);
                 if (parsed.research?.model) model = parsed.research.model;
             }
 
-            const result = await aiRouter.generateContent(prompt, provider, model);
+            const result = await aiRouter.generateContent(prompt, model);
 
             if (result.success && result.content) {
                 const reply: ChatMessage = {

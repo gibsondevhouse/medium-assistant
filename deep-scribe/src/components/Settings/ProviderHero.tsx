@@ -1,41 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Clipboard, CheckCircle2, ChevronRight, Zap, Shield, Key } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clipboard, CheckCircle2, Zap, Key, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
 
 interface ProviderHeroProps {
-    provider: string;
     apiKey: string | undefined;
     onSave: (key: string) => Promise<void>;
     onNavigateToPrompts: () => void;
     isLoading: boolean;
 }
 
-const PROVIDER_CONFIG: Record<string, { label: string; description: string; color: string; icon: any }> = {
-    gemini: { label: 'Google Gemini', description: 'Fast, multimodal reasoning suitable for most tasks.', color: 'blue', icon: Zap },
-    anthropic: { label: 'Anthropic Claude', description: 'Excellent nuance and writing capabilities.', color: 'orange', icon: Shield },
-    openai: { label: 'OpenAI GPT-4', description: 'Industry standard for complex logic.', color: 'green', icon: Zap },
-    deepseek: { label: 'DeepSeek', description: 'Strong coding and reasoning capabilities.', color: 'blue', icon: Zap },
-    perplexity: { label: 'Perplexity', description: 'Best for web-connected research.', color: 'teal', icon: Globe },
-    openrouter: { label: 'OpenRouter', description: 'Access to many open source models.', color: 'purple', icon: Zap },
-};
-
-// Fallback icon import if needed, but we use Lucide icons
-import { Globe } from 'lucide-react';
-
-
-
-export const ProviderHero: React.FC<ProviderHeroProps> = ({ provider, apiKey, onSave, onNavigateToPrompts, isLoading }) => {
+export const ProviderHero: React.FC<ProviderHeroProps> = ({ apiKey, onSave, onNavigateToPrompts, isLoading }) => {
     const [tempKey, setTempKey] = useState('');
     const [isPasting, setIsPasting] = useState(false);
     const [showInput, setShowInput] = useState(false);
-
-    const config = PROVIDER_CONFIG[provider] || { label: provider, description: 'AI Provider', color: 'gray', icon: Zap };
-    const Icon = config.icon;
-
-    // Reset local state when provider changes
-    useEffect(() => {
-        setTempKey('');
-        setShowInput(false);
-    }, [provider]);
 
     const handlePaste = async () => {
         setIsPasting(true);
@@ -47,7 +23,6 @@ export const ProviderHero: React.FC<ProviderHeroProps> = ({ provider, apiKey, on
             }
         } catch (err) {
             console.error('Failed to read clipboard', err);
-            // Fallback: just show input
             setShowInput(true);
         } finally {
             setIsPasting(false);
@@ -67,26 +42,26 @@ export const ProviderHero: React.FC<ProviderHeroProps> = ({ provider, apiKey, on
         <div className="w-full relative overflow-hidden rounded-2xl bg-[#161b22] border border-[#30363d] p-8 transition-all hover:border-[#58a6ff]/30 group">
 
             {/* Background Glow */}
-            <div className={`absolute top-0 right-0 w-64 h-64 bg-${config.color}-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2`}></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
             <div className="relative z-10">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
 
                     {/* Provider Info */}
                     <div className="flex items-start gap-4">
-                        <div className={`w-16 h-16 rounded-xl bg-${config.color}-900/20 flex items-center justify-center border border-${config.color}-500/20`}>
-                            <Icon className={`w-8 h-8 text-${config.color}-400`} />
+                        <div className="w-16 h-16 rounded-xl bg-blue-900/20 flex items-center justify-center border border-blue-500/20">
+                            <Zap className="w-8 h-8 text-blue-400" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <h2 className="text-2xl font-bold text-white font-serif">{config.label}</h2>
+                                <h2 className="text-2xl font-bold text-white font-serif">Google Gemini</h2>
                                 {isConfigured && (
                                     <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20 flex items-center gap-1">
                                         <CheckCircle2 className="w-3 h-3" /> Connected
                                     </span>
                                 )}
                             </div>
-                            <p className="text-gray-400 text-sm max-w-sm">{config.description}</p>
+                            <p className="text-gray-400 text-sm max-w-sm">Deep Scribe's exclusive AI engine for research and writing.</p>
                         </div>
                     </div>
 
@@ -128,7 +103,7 @@ export const ProviderHero: React.FC<ProviderHeroProps> = ({ provider, apiKey, on
                                         type="text"
                                         value={tempKey}
                                         onChange={(e) => setTempKey(e.target.value)}
-                                        placeholder="sk-..."
+                                        placeholder="AIza..."
                                         className="w-full sm:w-64 pl-9 pr-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder:text-gray-600"
                                         autoFocus
                                     />
@@ -159,13 +134,13 @@ export const ProviderHero: React.FC<ProviderHeroProps> = ({ provider, apiKey, on
                 {!isConfigured && !showInput && (
                     <div className="mt-6 pt-6 border-t border-[#30363d] flex items-center gap-2 text-xs text-gray-500">
                         <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
-                        Your API key is stored locally on this device and never shared.
+                        Your API key is stored locally on this device and never shared. Get your key at{' '}
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                            Google AI Studio
+                        </a>.
                     </div>
                 )}
             </div>
         </div>
     );
 };
-
-// Local icons
-import { Settings as SettingsIcon, RefreshCw } from 'lucide-react';

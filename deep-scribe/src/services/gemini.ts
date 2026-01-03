@@ -1,30 +1,26 @@
-
 import { Node, Edge } from 'reactflow';
 import { ResearchNodeData } from '../types/research';
 import { aiRouter } from './ai-router';
 
-// Helper to get current settings
-const getSettings = () => {
-    const provider = localStorage.getItem('activeProvider') || 'gemini';
-    let model = 'gemini-pro'; // Default
+// Helper to get model from settings
+const getModel = (): string => {
     try {
         const stored = localStorage.getItem('deep-scribe-settings');
         if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed.research && parsed.research.model) {
-                model = parsed.research.model;
+                return parsed.research.model;
             }
         }
     } catch (e) {
         console.warn("Failed to parse settings", e);
     }
-    return { provider, model };
+    return 'gemini-2.5-flash'; // Default model
 };
 
 // PASS 1: Generate Topic Map
-export const generateTopicMap = async (apiKey: string, topic: string): Promise<{ nodes: Node<ResearchNodeData>[], edges: Edge[] }> => {
-    // apiKey argument is ignored in favor of backend router keys
-    const { provider, model } = getSettings();
+export const generateTopicMap = async (topic: string): Promise<{ nodes: Node<ResearchNodeData>[], edges: Edge[] }> => {
+    const model = getModel();
 
     const prompt = `
     You are a research planning assistant.
@@ -40,10 +36,10 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
     Do not add markdown formatting like \`\`\`json. Just the raw JSON string.
   `;
 
-    const result = await aiRouter.generateContent(prompt, provider, model);
+    const result = await aiRouter.generateContent(prompt, model);
 
     if (!result.success || !result.content) {
-        throw new Error(result.error || "Failed to generate content via Router");
+        throw new Error(result.error || "Failed to generate content via Gemini");
     }
 
     const text = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -51,7 +47,6 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
     try {
         const data = JSON.parse(text);
 
-        // Convert to React Flow Nodes/Edges
         const nodes: Node<ResearchNodeData>[] = [
             {
                 id: 'root',
@@ -61,7 +56,7 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
             },
             ...data.subtopics.map((sub: any, index: number) => ({
                 id: sub.id,
-                position: { x: (index % 3) * 200, y: 150 + Math.floor(index / 3) * 150 }, // distinct positions
+                position: { x: (index % 3) * 200, y: 150 + Math.floor(index / 3) * 150 },
                 data: {
                     label: sub.label,
                     status: 'pending',
@@ -85,8 +80,8 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
 };
 
 // PASS 2: Deep Dive (Single Subtopic)
-export const researchSubtopic = async (apiKey: string, subtopic: string, mainTopic: string): Promise<string> => {
-    const { provider, model } = getSettings();
+export const researchSubtopic = async (subtopic: string, mainTopic: string): Promise<string> => {
+    const model = getModel();
 
     const prompt = `
     Conduct deep research on the subtopic "${subtopic}" within the context of "${mainTopic}".
@@ -95,38 +90,37 @@ export const researchSubtopic = async (apiKey: string, subtopic: string, mainTop
     Focus on information density.
   `;
 
-    const result = await aiRouter.generateContent(prompt, provider, model);
+    const result = await aiRouter.generateContent(prompt, model);
     if (!result.success || !result.content) {
-        throw new Error(result.error || "Failed to generate content via Router");
+        throw new Error(result.error || "Failed to generate content via Gemini");
     }
     return result.content;
 };
 
 // PASS 3: Synthesis
-export const synthesizeReport = async (apiKey: string, topic: string, findings: { topic: string, content: string }[]): Promise<string> => {
-    const { provider, model } = getSettings();
+export const synthesizeReport = async (topic: string, findings: { topic: string, content: string }[]): Promise<string> => {
+    const model = getModel();
 
     const findingsText = findings.map(f => `## ${f.topic}\n${f.content}`).join('\n\n');
 
     const prompt = `
     You are an expert editor and analyst.
     Write a comprehensive, long-form feature article about "${topic}" based on the following research notes.
-    
+
     Goal: A "The Verge" or "New Yorker" style deep dive.
     Structure:
     - Engaging Title
     - Introduction
     - Synthesized Sections (don't just list the notes, weave them together)
     - Conclusion
-    
+
     Research Notes:
     ${findingsText}
   `;
 
-    const result = await aiRouter.generateContent(prompt, provider, model);
+    const result = await aiRouter.generateContent(prompt, model);
     if (!result.success || !result.content) {
-        throw new Error(result.error || "Failed to generate content via Router");
+        throw new Error(result.error || "Failed to generate content via Gemini");
     }
     return result.content;
 };
-

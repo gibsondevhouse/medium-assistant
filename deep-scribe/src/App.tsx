@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Cog,
-  Plus
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DeepScribeLayout } from './components/DeepScribeLayout';
@@ -18,10 +15,6 @@ function cn(...inputs: ClassValue[]) {
 function App() {
   const [backendStatus, setBackendStatus] = useState('Connecting...');
 
-  // Settings State
-
-  const [activeProvider, setActiveProvider] = useState(() => localStorage.getItem('activeProvider') || 'gemini');
-
   // Draft Store
   const { drafts, loadDrafts, createNewDraft, selectDraft, activeDraft } = useDraftStore();
 
@@ -35,11 +28,6 @@ function App() {
       setActiveView('Editor');
     }
   }, [activeDraft]);
-
-  useEffect(() => {
-    localStorage.setItem('activeProvider', activeProvider);
-    // Sync provider to backend env if needed? For now just frontend state.
-  }, [activeProvider]);
 
   const [activeView, setActiveView] = useState('Dashboard');
   const [rightPanelMode, setRightPanelMode] = useState<'metadata' | 'chat'>('metadata');
@@ -68,11 +56,11 @@ function App() {
 
     checkConnection();
 
-    // Lazy Auth Check
+    // Lazy Auth Check - redirect to settings if no Gemini key
     if (window.electronAPI?.settings) {
-      window.electronAPI.settings.bothKeysSet().then((keysPresent) => {
-        console.log("Startup Auth Check:", keysPresent ? "Keys Present" : "No Keys (Lazy Mode)");
-        if (!keysPresent) {
+      window.electronAPI.settings.hasGeminiKey().then((hasKey) => {
+        console.log("Startup Auth Check:", hasKey ? "Gemini Key Present" : "No Key (Lazy Mode)");
+        if (!hasKey) {
           setDashboardTab('settings');
         }
       });
@@ -86,12 +74,10 @@ function App() {
 
   const handleCreateDraft = async () => {
     await createNewDraft();
-    // useEffect will switch view
   };
 
   const handleSelectDraft = async (id: string) => {
     await selectDraft(id);
-    // useEffect will switch view
   };
 
   const Sidebar = (
@@ -105,7 +91,7 @@ function App() {
 
       <nav className="flex-1 overflow-y-auto min-h-0 px-8 pb-8 space-y-10">
 
-        {/* 2. SECTION A: HOME (New Primary) */}
+        {/* 2. SECTION A: HOME */}
         <div className="space-y-4">
           <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Home</h3>
           <div className="flex flex-col space-y-2">
@@ -126,7 +112,7 @@ function App() {
               Dashboard
             </button>
 
-            {/* Settings (Moved here) */}
+            {/* Settings */}
             <button
               onClick={() => {
                 setActiveView('Dashboard');
@@ -145,9 +131,7 @@ function App() {
           </div>
         </div>
 
-
-
-        {/* 4. SECTION C: RECENT ARTICLES (State) */}
+        {/* 3. SECTION B: RECENT ARTICLES */}
         <div className="space-y-4">
           <div className="flex items-center justify-between group">
             <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Recent Articles</h3>
@@ -191,11 +175,9 @@ function App() {
           </div>
         </div>
 
-
-
       </nav>
 
-      {/* 6. BOTTOM: CHATS (Communication Module) */}
+      {/* 4. BOTTOM: CHAT */}
       <div className="p-8 shrink-0 bg-[#0d1117] border-t border-[#30363d]/30">
         <div className="space-y-4">
           <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Messages</h3>
@@ -224,7 +206,6 @@ function App() {
           Trending Now
         </h2>
         <div className="space-y-6">
-          {/* Item 1 */}
           <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
             <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>01</span>
             <div>
@@ -232,7 +213,6 @@ function App() {
               <span className="text-xs text-gray-500">Elena Fisher</span>
             </div>
           </div>
-          {/* Item 2 */}
           <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
             <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>02</span>
             <div>
@@ -240,7 +220,6 @@ function App() {
               <span className="text-xs text-gray-500">Marcus Chen</span>
             </div>
           </div>
-          {/* Item 3 */}
           <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
             <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>03</span>
             <div>
@@ -297,15 +276,6 @@ function App() {
 
     </div>
   );
-
-
-
-
-
-  // We still check for keys to update UI state if needed, but we don't block.
-  // const [isAuthenticated, setIsAuthenticated] = useState(false); // Removed gating state
-
-
 
   return (
     <>

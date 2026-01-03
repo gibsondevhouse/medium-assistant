@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
     ShieldCheck,
-    RefreshCw,
     Trash2,
     CheckCircle2,
     AlertTriangle,
@@ -10,110 +9,52 @@ import {
     Database,
     Sparkles,
     FileText,
-    Globe
+    Globe,
+    Send,
+    ExternalLink
 } from 'lucide-react';
 import { ApiKeyInput } from './ApiKeyInput';
 import {
     getGeminiKey, setGeminiKey,
-    getAnthropicKey, setAnthropicKey,
-    getDeepSeekKey, setDeepSeekKey,
-    getPerplexityKey, setPerplexityKey,
-    getOpenAIKey, setOpenAIKey,
-    getOpenRouterKey, setOpenRouterKey,
     getRssUrl, setRssUrl,
-    maskKey, clearAllKeys,
+    maskKey, clearGeminiKey,
     testGeminiKey
 } from '../../services/settings-keys';
 import { ProviderHero } from './ProviderHero';
 import { ProviderDeepDive } from './ProviderDeepDive';
 
 interface SettingsDashboardProps {
-    onOpenSettings: () => void; // Unused but kept for interface compatibility if needed
-    activeProvider?: string;
-    setActiveProvider?: (provider: string) => void;
+    onOpenSettings?: () => void;
 }
 
 type TabType = 'api' | 'research' | 'news' | 'editor' | 'advanced';
 
-export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProvider: initialActiveProvider, setActiveProvider: initialSetActiveProvider }) => {
+// Gemini Model Options
+const GEMINI_MODELS = [
+    { group: 'Gemini 3 (Preview)', label: 'Gemini 3.0 Pro (Reasoning)', value: 'gemini-3.0-pro-preview' },
+    { group: 'Gemini 3 (Preview)', label: 'Gemini 3.0 Flash (Multimodal)', value: 'gemini-3.0-flash-preview' },
+    { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Pro (Powerful)', value: 'gemini-2.5-pro' },
+    { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Flash (Balanced)', value: 'gemini-2.5-flash' },
+    { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Flash-Lite (Fastest)', value: 'gemini-2.5-flash-lite' },
+];
+
+export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
     const [activeTab, setActiveTab] = useState<TabType>('api');
     const [geminiKey, setGeminiKeyDisplay] = useState<string | undefined>();
-    const [anthropicKey, setAnthropicKeyDisplay] = useState<string | undefined>();
-    const [deepseekKey, setDeepseekKeyDisplay] = useState<string | undefined>();
-    const [perplexityKey, setPerplexityKeyDisplay] = useState<string | undefined>();
-    const [openaiKey, setOpenAIKeyDisplay] = useState<string | undefined>();
-    const [openrouterKey, setOpenRouterKeyDisplay] = useState<string | undefined>();
+    const [mediumToken, setMediumTokenDisplay] = useState<string | undefined>();
     const [rssUrl, setRssUrlDisplay] = useState<string>('');
     const [loading, setLoading] = useState(false);
-    const [testResult, setTestResult] = useState<{ key: string; success: boolean; message: string } | null>(null);
-
-    // Local state for active provider if not passed via props
-    const [localActiveProvider, setLocalActiveProvider] = useState<string>(initialActiveProvider || localStorage.getItem('activeProvider') || 'gemini');
-
-    const activeProvider = initialActiveProvider || localActiveProvider;
-    const setActiveProvider = initialSetActiveProvider || ((p: string) => {
-        setLocalActiveProvider(p);
-        localStorage.setItem('activeProvider', p);
-    });
-
-    // Model Options Map
-    const MODEL_OPTIONS: Record<string, { label: string; value: string; group?: string }[]> = {
-        gemini: [
-            { group: 'Gemini 3 (Preview)', label: 'Gemini 3.0 Pro (Reasoning)', value: 'gemini-3.0-pro-preview' },
-            { group: 'Gemini 3 (Preview)', label: 'Gemini 3.0 Flash (Multimodal)', value: 'gemini-3.0-flash-preview' },
-            { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Pro (Powerful)', value: 'gemini-2.5-pro' },
-            { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Flash (Balanced)', value: 'gemini-2.5-flash' },
-            { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Flash-Lite (Fastest)', value: 'gemini-2.5-flash-lite' },
-        ],
-        anthropic: [
-            { label: 'Claude 3.5 Sonnet (Balanced)', value: 'claude-3-5-sonnet-20240620' },
-            { label: 'Claude 3 Opus (Powerful)', value: 'claude-3-opus-20240229' },
-            { label: 'Claude 3 Haiku (Fast)', value: 'claude-3-haiku-20240307' },
-        ],
-        deepseek: [
-            { label: 'DeepSeek Coder V2', value: 'deepseek-coder' },
-            { label: 'DeepSeek Chat V2', value: 'deepseek-chat' },
-        ],
-        perplexity: [
-            { label: 'Llama 3.1 Sonar Large Online', value: 'llama-3.1-sonar-large-128k-online' },
-            { label: 'Llama 3.1 Sonar Small Online', value: 'llama-3.1-sonar-small-128k-online' },
-        ],
-        openai: [
-            { label: 'GPT-4o', value: 'gpt-4o' },
-            { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
-            { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-        ],
-        openrouter: [
-            { label: 'Auto (Best Free)', value: 'auto' },
-            { label: 'Nous Hermes 2 Mixtral', value: 'nous-hermes-2-mixtral-8x7b-dpo' },
-            { label: 'Mistral 7B Instruct', value: 'mistral-7b-instruct' },
-        ]
-    };
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // Research Settings
-    // Default to the first available model of the active provider
-    const getDefaultModel = (provider: string) => {
-        const models = MODEL_OPTIONS[provider];
-        return models ? models[0].value : 'gemini-2.5-flash';
-    };
-
-    const [researchModel, setResearchModel] = useState(getDefaultModel(initialActiveProvider || 'gemini'));
+    const [researchModel, setResearchModel] = useState('gemini-2.5-flash');
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(8192);
     const [parallelResearch, setParallelResearch] = useState(true);
 
-    // Reset research model when provider changes (if the current model isn't valid for the new provider)
-    useEffect(() => {
-        const availableModels = MODEL_OPTIONS[activeProvider]?.map(m => m.value) || [];
-        if (!availableModels.includes(researchModel)) {
-            setResearchModel(getDefaultModel(activeProvider));
-        }
-    }, [activeProvider]);
-
     // System Prompt Settings
     const [systemPrompt, setSystemPrompt] = useState<string>('You are an expert article writer.');
     const [customSystemPromptEnabled, setCustomSystemPromptEnabled] = useState(false);
-
 
     // News Feed Settings
     const [newsLanguage, setNewsLanguage] = useState('en');
@@ -133,30 +74,14 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProv
 
     const loadKeys = async () => {
         const gKey = await getGeminiKey();
-        const aKey = await getAnthropicKey();
-        const dKey = await getDeepSeekKey();
-        const pKey = await getPerplexityKey();
-        const oKey = await getOpenAIKey();
-        const orKey = await getOpenRouterKey();
         const rss = await getRssUrl();
+        const mToken = await window.electronAPI.settings.getMediumToken();
 
-        if (gKey) setGeminiKeyDisplay(await maskKey(gKey));
+        if (gKey) setGeminiKeyDisplay(maskKey(gKey));
         else setGeminiKeyDisplay(undefined);
 
-        if (aKey) setAnthropicKeyDisplay(await maskKey(aKey));
-        else setAnthropicKeyDisplay(undefined);
-
-        if (dKey) setDeepseekKeyDisplay(await maskKey(dKey));
-        else setDeepseekKeyDisplay(undefined);
-
-        if (pKey) setPerplexityKeyDisplay(await maskKey(pKey));
-        else setPerplexityKeyDisplay(undefined);
-
-        if (oKey) setOpenAIKeyDisplay(await maskKey(oKey));
-        else setOpenAIKeyDisplay(undefined);
-
-        if (orKey) setOpenRouterKeyDisplay(await maskKey(orKey));
-        else setOpenRouterKeyDisplay(undefined);
+        if (mToken) setMediumTokenDisplay(maskKey(mToken));
+        else setMediumTokenDisplay(undefined);
 
         if (rss) setRssUrlDisplay(rss);
     };
@@ -208,58 +133,6 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProv
         }
     };
 
-
-
-    const handleAnthropicSave = async (key: string) => {
-        setLoading(true);
-        try {
-            await setAnthropicKey(key);
-            await loadKeys();
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDeepSeekSave = async (key: string) => {
-        setLoading(true);
-        try {
-            await setDeepSeekKey(key);
-            await loadKeys();
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handlePerplexitySave = async (key: string) => {
-        setLoading(true);
-        try {
-            await setPerplexityKey(key);
-            await loadKeys();
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleOpenAISave = async (key: string) => {
-        setLoading(true);
-        try {
-            await setOpenAIKey(key);
-            await loadKeys();
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleOpenRouterSave = async (key: string) => {
-        setLoading(true);
-        try {
-            await setOpenRouterKey(key);
-            await loadKeys();
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleRssSave = async (url: string) => {
         setLoading(true);
         try {
@@ -270,28 +143,46 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProv
         }
     };
 
-    const handleClearAll = async () => {
-        if (!confirm("Are you sure you want to remove all API keys? You will need to re-enter them.")) return;
-        await clearAllKeys();
+    const handleClearKey = async () => {
+        if (!confirm("Are you sure you want to remove your Gemini API key?")) return;
+        await clearGeminiKey();
         await loadKeys();
         setTestResult(null);
     };
 
-    const handleTestKey = async (keyType: 'gemini') => {
+    const handleMediumSave = async (token: string) => {
+        setLoading(true);
+        try {
+            const result = await window.electronAPI.settings.setMediumToken(token);
+            if (result.success) {
+                await loadKeys();
+            } else {
+                alert(result.error || 'Failed to save Medium token');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClearMediumToken = async () => {
+        if (!confirm("Are you sure you want to remove your Medium Integration Token?")) return;
+        await window.electronAPI.settings.clearMediumToken();
+        await loadKeys();
+    };
+
+    const handleTestKey = async () => {
         setLoading(true);
         setTestResult(null);
         try {
             const result = await testGeminiKey();
             setTestResult({
-                key: keyType,
                 success: result,
                 message: result ? 'Gemini API connected successfully' : 'Failed to verify Gemini key'
             });
-        } catch (e) {
+        } catch (e: any) {
             setTestResult({
-                key: keyType,
                 success: false,
-                message: "Test failed unexpectedly."
+                message: e.message || "Test failed unexpectedly."
             });
         } finally {
             setLoading(false);
@@ -371,69 +262,104 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProv
                     {activeTab === 'api' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <div>
-                                <h3 className="text-3xl font-bold text-white mb-3 font-serif tracking-tight">API Configuration</h3>
-                                <p className="text-gray-400 font-sans text-lg leading-relaxed max-w-2xl">Manage your API keys for external services. Keys are stored securely on your device.</p>
+                                <h3 className="text-3xl font-bold text-white mb-3 font-serif tracking-tight">Gemini Configuration</h3>
+                                <p className="text-gray-400 font-sans text-lg leading-relaxed max-w-2xl">Deep Scribe runs exclusively on Google Gemini. Your API key is stored securely on your device.</p>
                             </div>
 
                             <div className="space-y-6">
-                                {/* Active Provider Selector & Hero Card */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div>
-                                            <h4 className="text-xl font-bold text-white font-serif">Active Provider</h4>
-                                            <p className="text-sm text-[#8b949e]">Select which AI service to use.</p>
-                                        </div>
-                                        <select
-                                            value={activeProvider}
-                                            onChange={(e) => setActiveProvider(e.target.value)}
-                                            className="bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow min-w-[200px]"
+                                <ProviderHero
+                                    apiKey={geminiKey}
+                                    onSave={handleGeminiSave}
+                                    onNavigateToPrompts={() => setActiveTab('research')}
+                                    isLoading={loading}
+                                />
+
+                                {geminiKey && (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={handleTestKey}
+                                            disabled={loading}
+                                            className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-blue-900/10 transition-colors border border-transparent hover:border-blue-900/30"
                                         >
-                                            <option value="gemini">Google Gemini</option>
-                                            <option value="anthropic">Anthropic Claude</option>
-                                            <option value="openai">OpenAI GPT-4</option>
-                                            <option value="deepseek">DeepSeek</option>
-                                            <option value="perplexity">Perplexity</option>
-                                            <option value="openrouter">OpenRouter</option>
-                                        </select>
+                                            <CheckCircle2 className="w-4 h-4" /> Test Connection
+                                        </button>
                                     </div>
+                                )}
 
-                                    <ProviderHero
-                                        provider={activeProvider}
-                                        apiKey={{
-                                            gemini: geminiKey,
-                                            anthropic: anthropicKey,
-                                            deepseek: deepseekKey,
-                                            perplexity: perplexityKey,
-                                            openai: openaiKey,
-                                            openrouter: openrouterKey
-                                        }[activeProvider]}
-                                        onSave={(key) => {
-                                            const handlers = {
-                                                gemini: handleGeminiSave,
-                                                anthropic: handleAnthropicSave,
-                                                deepseek: handleDeepSeekSave,
-                                                perplexity: handlePerplexitySave,
-                                                openai: handleOpenAISave,
-                                                openrouter: handleOpenRouterSave
-                                            };
-                                            return handlers[activeProvider as keyof typeof handlers](key);
-                                        }}
-                                        onNavigateToPrompts={() => setActiveTab('research')}
-                                        isLoading={loading}
-                                    />
+                                <div className="my-12 border-t border-white/10"></div>
 
-                                    <div className="my-12 border-t border-white/10"></div>
-
-                                    <ProviderDeepDive />
-                                </div>
+                                <ProviderDeepDive />
 
                                 <div className="pt-6 border-t border-[#30363d]">
                                     <button
-                                        onClick={handleClearAll}
+                                        onClick={handleClearKey}
                                         className="text-sm text-red-400 hover:text-red-300 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-red-900/10 transition-colors border border-transparent hover:border-red-900/30"
                                     >
-                                        <Trash2 className="w-4 h-4" /> Clear All API Keys
+                                        <Trash2 className="w-4 h-4" /> Clear Gemini API Key
                                     </button>
+                                </div>
+
+                                {/* Medium Integration Section */}
+                                <div className="my-12 border-t border-white/10"></div>
+
+                                <div>
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20">
+                                            <Send className="w-5 h-5 text-green-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-white font-serif tracking-tight">Medium Integration</h3>
+                                        </div>
+                                    </div>
+                                    <p className="text-gray-400 font-sans text-base leading-relaxed max-w-2xl mb-6">
+                                        Connect your Medium account to publish articles directly from Deep Scribe as drafts.
+                                    </p>
+                                </div>
+
+                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <h4 className="text-sm font-medium text-white">Integration Token</h4>
+                                        {mediumToken && (
+                                            <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3" /> Connected
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <ApiKeyInput
+                                        label="Medium Token"
+                                        placeholder="Enter your Medium Integration Token"
+                                        currentValue={mediumToken}
+                                        getKeyUrl="https://medium.com/me/settings/security"
+                                        onSave={handleMediumSave}
+                                        isLoading={loading}
+                                    />
+
+                                    <div className="mt-4 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
+                                        <p className="text-xs text-[#8b949e] mb-2 font-medium">How to get your token:</p>
+                                        <ol className="text-xs text-[#8b949e] list-decimal list-inside space-y-1">
+                                            <li>Go to Medium.com → Settings → Security</li>
+                                            <li>Scroll to "Integration tokens"</li>
+                                            <li>Click "Get token" and copy it</li>
+                                        </ol>
+                                        <button
+                                            onClick={() => window.electronAPI.openExternal('https://medium.com/me/settings/security')}
+                                            className="mt-3 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                        >
+                                            <ExternalLink className="w-3 h-3" /> Open Medium Settings
+                                        </button>
+                                    </div>
+
+                                    {mediumToken && (
+                                        <div className="mt-4 pt-4 border-t border-[#30363d]">
+                                            <button
+                                                onClick={handleClearMediumToken}
+                                                className="text-sm text-red-400 hover:text-red-300 flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-red-900/10 transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" /> Remove Medium Token
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -450,26 +376,18 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ activeProv
                             <div className="space-y-6">
                                 {/* Model Selection */}
                                 <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">AI Model</label>
+                                    <label className="block text-sm font-medium text-white mb-3">Gemini Model</label>
                                     <select
                                         value={researchModel}
                                         onChange={(e) => setResearchModel(e.target.value)}
                                         className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     >
-                                        {MODEL_OPTIONS[activeProvider]?.map((option, index) => {
-                                            if (option.group) {
-                                                // Simple handling for grouped options if we wanted to group them by array structure, 
-                                                // but for now let's just flatten or handle groups simply.
-                                                // Retrying logic: The array above has 'group' property. we can filter unique groups.
-                                                return (
-                                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                                );
-                                            }
-                                            return <option key={option.value} value={option.value}>{option.label}</option>;
-                                        }) || <option value="error">No models available for this provider</option>}
+                                        {GEMINI_MODELS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
                                     </select>
                                     <p className="mt-2 text-xs text-[#8b949e]">
-                                        Available models for <strong>{activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</strong>.
+                                        Select the Gemini model for research and content generation.
                                     </p>
                                 </div>
 

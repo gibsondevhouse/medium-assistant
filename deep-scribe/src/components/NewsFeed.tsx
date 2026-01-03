@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function NewsFeed({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const [activeTab, setActiveTab] = useState<'All' | 'Tech' | 'Design' | 'Crypto' | 'Culture'>('All');
 
 

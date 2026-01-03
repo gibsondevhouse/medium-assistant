@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { NewsFeed } from '../NewsFeed';
-import { ResearchTab } from '../Research/ResearchTab';
+import { ResearchDashboard } from '../Research/ResearchDashboard';
 import { SettingsDashboard } from '../Settings/SettingsDashboard';
+import { ChatWithNotes } from '../KnowledgeBase';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,7 +14,7 @@ function cn(...inputs: ClassValue[]) {
 interface DashboardTab {
   id: string;
   label: string;
-  component: React.ComponentType<{ onOpenSettings: () => void; navigateToTab?: (tabId: string) => void }>;
+  component: React.ComponentType<{ onOpenSettings?: () => void; navigateToTab?: (tabId: string) => void }>;
   closeable?: boolean;
 }
 
@@ -55,6 +56,10 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange }: Dashb
                   <h3 className="text-lg font-semibold text-white mb-2">🔍 Research</h3>
                   <p className="text-sm text-gray-400">Deep dive into topics and synthesize comprehensive reports using AI.</p>
                 </div>
+                <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-purple-500/30 transition-colors text-left">
+                  <h3 className="text-lg font-semibold text-white mb-2">💬 Chat with Notes</h3>
+                  <p className="text-sm text-gray-400">Ask questions about your research notes using RAG-powered AI.</p>
+                </div>
               </div>
               <button
                 onClick={() => navigateToTab?.('settings')}
@@ -71,7 +76,13 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange }: Dashb
     {
       id: 'research',
       label: 'Research',
-      component: ResearchTab,
+      component: ResearchDashboard,
+      closeable: true,
+    },
+    {
+      id: 'notes',
+      label: 'Chat with Notes',
+      component: ChatWithNotes,
       closeable: true,
     },
     {

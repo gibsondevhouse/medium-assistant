@@ -10,7 +10,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
-export function TopicInput({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function TopicInput({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const [localQuery, setLocalQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { setQuery, setNodes, setEdges, setStatus, setError } = useResearchStore();
@@ -25,20 +25,18 @@ export function TopicInput({ onOpenSettings }: { onOpenSettings: () => void }) {
 
         try {
             // Fetch key from secure storage just before using it
-            const apiKey = await window.electronAPI.settings.getGeminiKey();
+            const hasKey = await window.electronAPI.settings.hasGeminiKey();
 
-            if (!apiKey) {
-                // Should use onOpenSettings ideally, but we are mid-process.
-                // Let's stop and prompt.
+            if (!hasKey) {
                 setIsLoading(false);
                 setStatus('idle');
-                onOpenSettings();
+                onOpenSettings?.();
                 return;
             }
 
             setQuery(localQuery);
 
-            const { nodes, edges } = await generateTopicMap(apiKey, localQuery);
+            const { nodes, edges } = await generateTopicMap(localQuery);
             setNodes(nodes);
             setEdges(edges);
             setStatus('reviewing_plan');
@@ -50,7 +48,7 @@ export function TopicInput({ onOpenSettings }: { onOpenSettings: () => void }) {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in duration-500">
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
             <h1 className="text-4xl md:text-5xl font-serif text-white mb-6 tracking-tight">
                 What do you want to learn?
             </h1>
