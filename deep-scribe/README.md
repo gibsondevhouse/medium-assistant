@@ -7,21 +7,21 @@ A local-first desktop assistant for authors to research, write, and publish arti
 ### ✅ Built
 
 - **Core Architecture**: Electron + React + TypeScript frontend with a Python FastAPI sidecar backend.
-- **Local Persistence**: Secure storage of API keys (`safeStorage`) and application settings (`electron-store`) without reliant on environment variables.
+- **Multi-Provider AI Router**: Unified Python backend router supporting Gemini, Anthropic (Claude), DeepSeek, and Perplexity with standardized responses and credit calculation.
+- **Draft Management System**: Local Markdown persistence layer for creating, editing, and saving drafts to disk.
+- **Local Persistence**: Secure storage of API keys (`safeStorage`) and application settings (`electron-store`) without relying on environment variables.
 - **RSS Integration**: Real-time fetching of customizable RSS feeds (e.g., Medium tags) with smooth client-side pagination and editorial masonry layout.
-- **Enhanced Logging**: Centralized, timestamped logging system for both Main and Renderer processes, aiding rapid debugging.
+- **Enhanced Logging**: Centralized, timestamped logging system for both Main and Renderer processes.
 - **Dashboard UI**: Modern, glassmorphism-inspired dashboard with "For You" feed and "Command Capsule" navigation.
-- **Executable Bundling**: Python backend is compiled to a standalone executable (using PyInstaller) for production builds, removing user-side Python dependency constraints.
+- **Executable Bundling**: Python backend is compiled to a standalone executable for production.
 
 ### 🚧 Started
 
 - **Research Tab**: Initial UI scaffolding for the hierarchical research mode.
-- **Gemini AI Integration**: Basic API key management and connectivity tests implemented; full integration into writing workflows is in progress.
-- **Sidebar Navigation**: Framework for "Home", "Research", and "Settings" navigation established.
+- **Markdown Editor**: Basic editor component integrated with draft management system.
 
 ### 📝 Yet to be Implemented
 
-- **Markdown Editor**: Full-featured editor with syntax highlighting and live preview.
 - **Medium Publishing**: Direct API integration to draft/publish stories to Medium.
 - **Deep Research Agent**: Multi-step AI research workflows (Topic Mapping -> Deep Dive -> Synthesis).
 - **Conversational Interface**: Chat-based side panel for drafting assistance.
@@ -50,7 +50,7 @@ This application uses the **Python Sidecar Pattern**:
 - **Vite**: v5
 - **TailwindCSS**: v3
 - **FastAPI**: v0.100+
-- **Google Generative AI**: Gemini Pro
+- **AI Providers**: Google Gemini, Anthropic Claude, Perplexity, DeepSeek (via Python SDKs)
 
 ## How to Run
 

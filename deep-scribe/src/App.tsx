@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
-  Cog
+  Cog,
+  Plus
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DeepScribeLayout } from './components/DeepScribeLayout';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { Editor } from './components/Editor/Editor';
+import { useDraftStore } from './store/draftStore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,6 +21,13 @@ function App() {
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
   const [activeProvider, setActiveProvider] = useState(() => localStorage.getItem('activeProvider') || 'gemini');
+
+  // Draft Store
+  const { drafts, loadDrafts, createNewDraft, selectDraft, activeDraft } = useDraftStore();
+
+  useEffect(() => {
+    loadDrafts();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('activeProvider', activeProvider);
@@ -62,6 +72,16 @@ function App() {
       console.warn("Electron API not available (App.tsx)");
     }
   }, []);
+
+  const handleCreateDraft = async () => {
+    await createNewDraft();
+    setActiveView('Editor');
+  };
+
+  const handleSelectDraft = async (id: string) => {
+    await selectDraft(id);
+    setActiveView('Editor');
+  };
 
   const Sidebar = (
     <div className="w-full h-full bg-[#0d1117] flex flex-col overflow-hidden font-sans">
@@ -110,21 +130,35 @@ function App() {
 
         {/* 4. SECTION C: RECENT ARTICLES (State) */}
         <div className="space-y-4">
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Recent Articles</h3>
+          <div className="flex items-center justify-between group">
+            <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Recent Articles</h3>
+            <button
+              onClick={handleCreateDraft}
+              className="text-[#8b949e] hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+              title="New Draft"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
           <div className="flex flex-col space-y-3">
-            {[
-              'Untitled Draft',
-              'Sci-Fi Protagonist Idea',
-              'World Building Rules',
-              'Chapter 1: The Awakening'
-            ].map((title) => (
-              <button
-                key={title}
-                className="text-left text-sm text-[#8b949e] hover:text-white hover:translate-x-1 transition-all duration-200"
-              >
-                {title}
-              </button>
-            ))}
+            {drafts.length === 0 ? (
+              <div className="text-sm text-gray-600 italic">No drafts yet</div>
+            ) : (
+              drafts.map((draft) => (
+                <button
+                  key={draft.id}
+                  onClick={() => handleSelectDraft(draft.id)}
+                  className={cn(
+                    "text-left text-sm transition-all duration-200 truncate",
+                    activeDraft?.id === draft.id && activeView === 'Editor'
+                      ? "text-white translate-x-1"
+                      : "text-[#8b949e] hover:text-white hover:translate-x-1"
+                  )}
+                >
+                  {draft.title || 'Untitled'}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -264,7 +298,7 @@ function App() {
 
       <DeepScribeLayout
         sidebar={Sidebar}
-        editor={<Dashboard onOpenSettings={() => setShowSettings(true)} />}
+        editor={activeView === 'Editor' ? <Editor /> : <Dashboard onOpenSettings={() => setShowSettings(true)} />}
         metadata={Metadata}
       />
     </>

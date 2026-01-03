@@ -5,6 +5,7 @@ A desktop application for authors to write, research, and publish content. Built
 ## Project Overview
 
 **Tech Stack:**
+
 - Frontend: Electron + Vite + React 18 + TypeScript + Tailwind CSS
 - Backend: Python 3 + FastAPI + Uvicorn
 - Communication: HTTP REST API (Electron ↔ Python)
@@ -12,6 +13,7 @@ A desktop application for authors to write, research, and publish content. Built
 - UI Components: Lucide React icons, React Flow, React Resizable Panels
 
 **Project Structure:**
+
 ```
 deep-scribe/
 ├── electron/               # Electron main process (TypeScript)
@@ -40,6 +42,7 @@ deep-scribe/
 ## Build & Development
 
 ### Development Mode
+
 ```bash
 # Install dependencies
 npm install
@@ -52,6 +55,7 @@ npm run dev
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 ```
@@ -59,6 +63,7 @@ npm run build
 ## Code Style & Conventions
 
 ### React/TypeScript
+
 - Use functional components with hooks (never class components)
 - Use `const` for components and functions, never `var`
 - Use TypeScript interfaces for props and state (no `any` types)
@@ -68,6 +73,7 @@ npm run build
 - Component organization: imports → types/interfaces → component definition
 
 ### File Structure
+
 - Components in `src/components/` with `.tsx` extension
 - Services/API clients in `src/services/` with `.ts` extension
 - Zustand stores in `src/store/` named `*Store.ts`
@@ -75,31 +81,37 @@ npm run build
 - Types in `src/types/` named `*.ts`
 
 ### Naming Conventions
+
 - React components: PascalCase (e.g., `NewsFeed.tsx`)
 - Files: kebab-case for services/hooks/types (e.g., `settings-keys.ts`)
 - TypeScript interfaces: PascalCase with `I` prefix or just describe the data (e.g., `ArticleCard`, `ResearchState`)
 
 ### Tailwind CSS Usage
+
 - Use design system colors: `bg-[#0d1117]`, `border-[#30363d]`, `text-[#8b949e]`
 - Mobile-first responsive design: `sm:`, `md:`, `lg:` prefixes
 - Animations: `animate-in`, `fade-in`, `duration-200` for consistent transitions
 - No inline style props (except for `fontFamily` where Playfair Display serif needed)
 
 ### Error Handling
+
 - Wrap async operations in try-catch
 - Log errors to console for debugging
 - Show user-friendly error messages in UI
 - Never silently fail without logging
 
 ### API Integration
-- All Electron IPC calls use `window.electronAPI.*` (defined in preload.ts)
-- REST calls to Python backend at `http://127.0.0.1:${PORT}`
-- API keys retrieved from secure Electron settings storage
-- Always await async API calls before using results
+
+- **Client-Side Service:** `AiRouterService` (`src/services/ai-router.ts`) acts as the single point of contact for AI generation.
+- **Unified Backend:** Python `UnifiedRouter` (`python_backend/router.py`) handles requests for all providers.
+- **API Keys:** Securely stored in Electron main process, accessed via encryption-capable IPC.
+- **Providers:** Supports Gemini, Anthropic, DeepSeek, and Perplexity.
+- **REST Protocol:** All AI requests sent to `http://127.0.0.1:${PORT}/api/generate`.
 
 ## Key Components & Features
 
 ### Dashboard (NEW - PRIMARY INTERFACE)
+
 - **File:** `src/components/Dashboard/Dashboard.tsx`
 - **Tabs:** Home (default), News Feed, Research
 - **Closeable tabs:** News Feed and Research can be closed
@@ -107,26 +119,29 @@ npm run build
 - **State:** Uses local state for tab management
 
 ### Research Tab
+
 - **File:** `src/components/Research/ResearchTab.tsx`
 - **Workflow:** TopicInput → TopicGraph → ResearchReport
 - **State:** Zustand store (`useResearchStore`)
 - **Status flow:** idle → surveying → reviewing_plan → researching → synthesizing → complete
-- **Features:** 
+- **Features:**
   - Generate topic map (AI breaks topic into subtopics)
   - Research each subtopic in parallel
   - Synthesize findings into comprehensive report
 
 ### News Feed
+
 - **File:** `src/components/NewsFeed.tsx`
 - **Source:** GNews API
 - **Layout:** Masonry grid with hero, sub-hero, and basic card types
-- **Features:** 
+- **Features:**
   - Infinite scroll with Intersection Observer
   - Category filtering (Tech, Design, Crypto, Culture)
   - Fallback to mock data if API unavailable
   - Requires GNews API key in Settings
 
 ### Settings Modal
+
 - **File:** `src/components/Settings/SettingsModal.tsx`
 - **Tabs:** API Keys, Research, News Feed, Editor, Advanced
 - **Features:**
@@ -135,21 +150,31 @@ npm run build
   - Settings persisted to localStorage
   - Sliders, toggles, dropdowns, multi-select checkboxes
 
+### Draft Management
+
+- **File:** `electron/services/drafts.ts` (Backend) & `src/store/draftStore.ts` (Frontend)
+- **Persistence:** Local Markdown (`.md`) files in `Time Machine/Drafts` (OS-specific user data path).
+- **Features:** Create, Read, List, Save, Delete.
+- **Editor:** Basic text editor component integrated with autosave.
+
 ### API Settings
-- **Gemini API Key:** For AI research and content generation
-- **GNews API Key:** For news feed articles
-- Keys stored securely in Electron main process
-- Individual test endpoints for each key
+
+- **AI Keys:** Gemini, Anthropic, DeepSeek, Perplexity.
+- **GNews Key:** For news feed.
+- Keys stored securely in Electron main process (`safeStorage`).
+- Individual test endpoints for each key.
 
 ## Development Tasks
 
 ### Frontend Implementation
+
 - Fix any remaining TypeScript type errors
 - Implement missing component logic
 - Add proper error boundaries and fallbacks
 - Ensure all API calls handle errors gracefully
 
 ### Backend Implementation
+
 - Implement REST endpoints for:
   - Draft creation/update/deletion
   - Medium API integration
@@ -159,12 +184,14 @@ npm run build
 - Implement error handling and logging
 
 ### Testing
+
 - Test research workflow end-to-end
 - Test news feed infinite scroll
 - Test API key validation
 - Test settings persistence
 
 ### Performance
+
 - Optimize React renders (use React.memo for expensive components)
 - Implement request caching
 - Lazy load components when possible
@@ -180,6 +207,7 @@ npm run build
 ## Environment Variables
 
 **.env** (in deep-scribe root):
+
 ```
 VITE_GNEWS_API_KEY=
 PORT=  # Auto-assigned if not set

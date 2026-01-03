@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 import { GeminiSDKService } from './services/gemini';
 import { SettingsService } from './services/settings';
 import { RssService } from './services/rss';
+import { DraftService } from './services/drafts';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -211,6 +212,29 @@ const rssService = new RssService();
 
 ipcMain.handle('rss:fetch', async (_, url: string) => {
   return rssService.fetchFeed(url);
+});
+
+// --- Draft Service ---
+const draftService = new DraftService();
+
+ipcMain.handle('drafts:list', async () => {
+  return draftService.listDrafts();
+});
+
+ipcMain.handle('drafts:read', async (_, id: string) => {
+  return draftService.readDraft(id);
+});
+
+ipcMain.handle('drafts:save', async (_, id: string, content: string) => {
+  return draftService.saveDraft(id, content);
+});
+
+ipcMain.handle('drafts:create', async (_, title: string) => {
+  return draftService.createDraft(title);
+});
+
+ipcMain.handle('drafts:delete', async (_, id: string) => {
+  return draftService.deleteDraft(id);
 });
 
 import { logger } from './utils/logger';

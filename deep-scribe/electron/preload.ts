@@ -34,5 +34,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     testGNewsKey: (key?: string) => ipcRenderer.invoke('settings:test-gnews-key', key),
     clearAllKeys: () => ipcRenderer.invoke('settings:clear-all-keys'),
     bothKeysSet: () => ipcRenderer.invoke('settings:both-keys-set'),
+  },
+  drafts: {
+    list: () => ipcRenderer.invoke('drafts:list'),
+    read: (id: string) => ipcRenderer.invoke('drafts:read', id),
+    save: (id: string, content: string) => ipcRenderer.invoke('drafts:save', id, content),
+    create: (title: string) => ipcRenderer.invoke('drafts:create', title),
+    delete: (id: string) => ipcRenderer.invoke('drafts:delete', id),
   }
 });
