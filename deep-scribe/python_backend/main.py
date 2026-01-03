@@ -3,19 +3,24 @@ from fastapi.middleware.cors import CORSMiddleware
 import socket
 from dotenv import load_dotenv
 import os
+import argparse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from router import GeminiRouter
 from knowledge_base import KnowledgeBaseService
+from services.google_search import GoogleSearchService
+from services.google_books import GoogleBooksService
 import uvicorn
-import torch
+from utils.logger import logger
 
 load_dotenv()
 
 app = FastAPI()
 
-# Initialize Knowledge Base Service
+# Initialize Services
 kb_service = KnowledgeBaseService()
+search_service = GoogleSearchService()
+books_service = GoogleBooksService()
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,6 +37,7 @@ def find_free_port():
 
 @app.get("/")
 def read_root():
+    logger.info("Health check endpoint called")
     return {"message": "Hello from Deep Scribe Backend (Gemini)"}
 
 # --- GEMINI ROUTER ---
@@ -44,12 +50,46 @@ class GenerateRequest(BaseModel):
 
 @app.post("/api/generate")
 async def generate_content(request: GenerateRequest):
+    logger.info(f"Generating content with model: {request.model}")
     result = router.generate(
         model=request.model,
         prompt=request.prompt,
         api_key=request.api_key
     )
+    if not result.get("success"):
+        logger.error(f"Generation failed: {result.get('error')}")
     return result
+
+
+# --- TOOLS ENDPOINTS ---
+
+class SearchRequest(BaseModel):
+    query: str
+    num_results: int = 5
+    api_key: str
+    search_engine_id: str
+
+@app.post("/api/tools/search")
+async def google_search(request: SearchRequest):
+    """
+    Perform a Google Custom Search to ground the research.
+    """
+    # Configure on the fly with user provided keys (stateless)
+    search_service.configure(request.api_key, request.search_engine_id)
+    return search_service.search(request.query, request.num_results)
+
+class BooksRequest(BaseModel):
+    query: str
+    max_results: int = 5
+    api_key: str
+
+@app.post("/api/tools/books")
+async def google_books(request: BooksRequest):
+    """
+    Search Google Books for authoritative sources.
+    """
+    books_service.configure(request.api_key)
+    return books_service.search(request.query, request.max_results)
 
 
 # --- KNOWLEDGE BASE ENDPOINTS ---
@@ -93,6 +133,7 @@ class KBChatRequest(BaseModel):
 @app.post("/api/kb/add")
 async def kb_add_document(request: KBAddDocumentRequest):
     """Add a document to the knowledge base"""
+    logger.info(f"Adding document: {request.title}")
     kb_service.set_api_key(request.api_key)
     return kb_service.add_document(
         content=request.content,
@@ -105,6 +146,7 @@ async def kb_add_document(request: KBAddDocumentRequest):
 @app.post("/api/kb/add-research")
 async def kb_add_research(request: KBAddResearchRequest):
     """Add research findings to the knowledge base"""
+    logger.info(f"Adding research: {request.topic} - {request.subtopic}")
     kb_service.set_api_key(request.api_key)
     return kb_service.add_research_findings(
         topic=request.topic,
@@ -116,6 +158,7 @@ async def kb_add_research(request: KBAddResearchRequest):
 @app.post("/api/kb/add-report")
 async def kb_add_report(request: KBAddReportRequest):
     """Add a research report to the knowledge base"""
+    logger.info(f"Adding report: {request.topic}")
     kb_service.set_api_key(request.api_key)
     return kb_service.add_research_report(
         topic=request.topic,
@@ -126,6 +169,7 @@ async def kb_add_report(request: KBAddReportRequest):
 @app.post("/api/kb/query")
 async def kb_query(request: KBQueryRequest):
     """Query the knowledge base for similar documents"""
+    logger.info(f"Querying KB: {request.query}")
     kb_service.set_api_key(request.api_key)
     return kb_service.query(
         query_text=request.query,
@@ -141,11 +185,13 @@ async def kb_get_documents(limit: int = 100):
 @app.delete("/api/kb/document/{doc_id}")
 async def kb_delete_document(doc_id: str):
     """Delete a document from the knowledge base"""
+    logger.info(f"Deleting document: {doc_id}")
     return kb_service.delete_document(doc_id)
 
 @app.delete("/api/kb/clear")
 async def kb_clear():
     """Clear all documents from the knowledge base"""
+    logger.warning("Clearing entire Knowledge Base")
     return kb_service.clear_all()
 
 @app.get("/api/kb/stats")
@@ -157,8 +203,8 @@ async def kb_stats():
 async def kb_chat(request: KBChatRequest):
     """
     Chat with your notes - RAG-powered conversation
-    Queries the knowledge base for context and generates a response
     """
+    logger.info(f"Chat request: {request.message[:50]}...")
     kb_service.set_api_key(request.api_key)
 
     # First, query for relevant context
@@ -168,6 +214,7 @@ async def kb_chat(request: KBChatRequest):
     )
 
     if not context_results.get("success"):
+        logger.error(f"KB Query failed: {context_results.get('error')}")
         return {
             "success": False,
             "error": context_results.get("error", "Failed to query knowledge base")
@@ -219,43 +266,22 @@ async def kb_chat(request: KBChatRequest):
     }
 
 
-def get_hardware_config():
-    config = {
-        "device": "cpu",
-        "type": "Standard CPU",
-        "gpu_count": 0,
-        "gpu_names": []
-    }
-
-    if torch.cuda.is_available():
-        config["device"] = "cuda"
-        config["type"] = "NVIDIA CUDA"
-        config["gpu_count"] = torch.cuda.device_count()
-        for i in range(config["gpu_count"]):
-            config["gpu_names"].append(torch.cuda.get_device_name(i))
-
-    elif torch.backends.mps.is_available():
-        config["device"] = "mps"
-        config["type"] = "Apple Silicon (Metal)"
-        config["gpu_count"] = 1
-        config["gpu_names"] = ["Apple Neural Engine"]
-
-    return config
-
 @app.get("/config")
 def get_config():
-    hw_info = get_hardware_config()
     return {
-        "hardware": hw_info,
+        "hardware": {"type": "Cloud Native (Gemini)"},
         "provider": "gemini"
     }
 
 if __name__ == "__main__":
-    port = os.getenv("PORT")
+    parser = argparse.ArgumentParser(description="Deep Scribe Gemini Backend")
+    parser.add_argument("--port", type=int, help="Port to run the server on")
+    args = parser.parse_args()
+
+    port = args.port
     if port is None:
         port = find_free_port()
-        with open("../.env", "w") as f:
-            f.write(f"PORT={port}")
-
-    print(f"Starting Deep Scribe Gemini backend on port {port}")
+        logger.info(f"No port provided, found free port: {port}")
+    
+    logger.info(f"Starting Deep Scribe Gemini backend on port {port}")
     uvicorn.run(app, host="127.0.0.1", port=int(port))

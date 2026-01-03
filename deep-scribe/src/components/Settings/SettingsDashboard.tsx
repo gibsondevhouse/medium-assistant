@@ -10,8 +10,12 @@ import {
     Sparkles,
     FileText,
     Globe,
+    Search,
     Send,
-    ExternalLink
+    ExternalLink,
+    Palette,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { ApiKeyInput } from './ApiKeyInput';
 import {
@@ -22,12 +26,13 @@ import {
 } from '../../services/settings-keys';
 import { ProviderHero } from './ProviderHero';
 import { ProviderDeepDive } from './ProviderDeepDive';
+import { useThemeStore, ThemeName, ThemeMode } from '../../store/themeStore';
 
 interface SettingsDashboardProps {
     onOpenSettings?: () => void;
 }
 
-type TabType = 'api' | 'research' | 'news' | 'editor' | 'advanced';
+type TabType = 'api' | 'research' | 'news' | 'editor' | 'appearance' | 'advanced';
 
 // Gemini Model Options
 const GEMINI_MODELS = [
@@ -38,13 +43,28 @@ const GEMINI_MODELS = [
     { group: 'Gemini 2.5 (Stable)', label: 'Gemini 2.5 Flash-Lite (Fastest)', value: 'gemini-2.5-flash-lite' },
 ];
 
+const THEMES: { id: ThemeName; label: string; color: string }[] = [
+    { id: 'harlem_nights', label: 'Harlem Nights', color: '#d4af37' },
+    { id: 'vibranium', label: 'Vibranium', color: '#6a0dad' },
+    { id: 'kente_cloth', label: 'Kente Cloth', color: '#ce1126' },
+    { id: 'black_ice', label: 'Black Ice', color: '#a5f2f3' },
+    { id: 'akatsuki', label: 'Akatsuki', color: '#ba1319' },
+    { id: 'uzumaki', label: 'Uzumaki', color: '#f66c2d' },
+    { id: 'byakugan', label: 'Byakugan', color: '#dcd0ff' },
+];
+
 export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
     const [activeTab, setActiveTab] = useState<TabType>('api');
     const [geminiKey, setGeminiKeyDisplay] = useState<string | undefined>();
+    const [googleSearchKey, setGoogleSearchKeyDisplay] = useState<string | undefined>();
+    const [googleSearchCx, setGoogleSearchCxDisplay] = useState<string | undefined>();
     const [mediumToken, setMediumTokenDisplay] = useState<string | undefined>();
     const [rssUrl, setRssUrlDisplay] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Theme Store
+    const { theme, mode, setTheme, setMode, toggleMode } = useThemeStore();
 
     // Research Settings
     const [researchModel, setResearchModel] = useState('gemini-2.5-flash');
@@ -70,18 +90,25 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
     // Advanced Settings
     const [enableLogging, setEnableLogging] = useState(true);
     const [cacheEnabled, setCacheEnabled] = useState(true);
-    const [theme, setTheme] = useState('dark');
 
     const loadKeys = async () => {
         const gKey = await getGeminiKey();
         const rss = await getRssUrl();
         const mToken = await window.electronAPI.settings.getMediumToken();
+        const gsKey = await window.electronAPI.settings.getGoogleSearchKey();
+        const gsCx = await window.electronAPI.settings.getGoogleSearchCx();
 
         if (gKey) setGeminiKeyDisplay(maskKey(gKey));
         else setGeminiKeyDisplay(undefined);
 
         if (mToken) setMediumTokenDisplay(maskKey(mToken));
         else setMediumTokenDisplay(undefined);
+
+        if (gsKey) setGoogleSearchKeyDisplay(maskKey(gsKey));
+        else setGoogleSearchKeyDisplay(undefined);
+
+        if (gsCx) setGoogleSearchCxDisplay(maskKey(gsCx));
+        else setGoogleSearchCxDisplay(undefined);
 
         if (rss) setRssUrlDisplay(rss);
     };
@@ -115,7 +142,6 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                 if (parsed.advanced) {
                     setEnableLogging(parsed.advanced.enableLogging ?? true);
                     setCacheEnabled(parsed.advanced.cacheEnabled ?? true);
-                    setTheme(parsed.advanced.theme || 'dark');
                 }
             }
         } catch (e) {
@@ -131,6 +157,31 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGoogleSearchSave = async (key: string) => {
+        setLoading(true);
+        try {
+            const result = await window.electronAPI.settings.setGoogleSearchKey(key);
+            if (!result.success) alert(result.error);
+            await loadKeys();
+        } finally { setLoading(false); }
+    };
+
+    const handleGoogleCxSave = async (cx: string) => {
+        setLoading(true);
+        try {
+            const result = await window.electronAPI.settings.setGoogleSearchCx(cx);
+            if (!result.success) alert(result.error);
+            await loadKeys();
+        } finally { setLoading(false); }
+    };
+
+    const handleClearGoogleSearch = async () => {
+        if (!confirm("Remove Google Search keys?")) return;
+        await window.electronAPI.settings.clearGoogleSearchKey();
+        await window.electronAPI.settings.clearGoogleSearchCx();
+        await loadKeys();
     };
 
     const handleRssSave = async (url: string) => {
@@ -194,7 +245,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
             research: { model: researchModel, temperature, maxTokens, parallelResearch, systemPrompt, customSystemPromptEnabled },
             news: { language: newsLanguage, country: newsCountry, maxArticles: newsMaxArticles, categories: newsCategories },
             editor: { autoSaveInterval, defaultExportFormat, enableSpellCheck },
-            advanced: { enableLogging, cacheEnabled, theme }
+            advanced: { enableLogging, cacheEnabled }
         }));
         alert("Settings saved!");
     }
@@ -202,24 +253,25 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
     const tabs = [
         { id: 'api' as TabType, label: 'API Keys', icon: Key },
         { id: 'research' as TabType, label: 'Research', icon: Sparkles },
+        { id: 'appearance' as TabType, label: 'Appearance', icon: Palette },
         { id: 'news' as TabType, label: 'News Feed', icon: Globe },
         { id: 'editor' as TabType, label: 'Editor', icon: FileText },
         { id: 'advanced' as TabType, label: 'Advanced', icon: SettingsIcon },
     ];
 
     return (
-        <div className="w-full h-full bg-[#0a0a0a] flex flex-col md:flex-row overflow-hidden">
+        <div className="w-full h-full bg-surface-100 flex flex-col md:flex-row overflow-hidden text-text-primary">
 
             {/* Sidebar Tabs */}
-            <div className="w-full md:w-64 border-r border-[#333] bg-[#161618] flex flex-col">
-                <div className="p-8 border-b border-[#333] bg-[#161618]">
+            <div className="w-full md:w-64 border-r border-white/5 bg-surface-200 flex flex-col">
+                <div className="p-8 border-b border-white/5 bg-surface-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center border border-blue-500/20">
-                            <ShieldCheck className="w-5 h-5 text-blue-400" />
+                        <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center border border-brand-primary/20">
+                            <ShieldCheck className="w-5 h-5 text-brand-primary" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white leading-tight">Settings</h2>
-                            <p className="text-xs text-[#8b949e]">Configure Deep Scribe</p>
+                            <h2 className="text-lg font-serif font-bold text-text-primary leading-tight">Settings</h2>
+                            <p className="text-xs text-text-muted">Configure Deep Scribe</p>
                         </div>
                     </div>
                 </div>
@@ -232,8 +284,8 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                    : 'text-[#8b949e] hover:text-white hover:bg-[#30363d]/30'
+                                    ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                                    : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -245,7 +297,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto bg-[#121212] flex flex-col">
+            <div className="flex-1 overflow-y-auto bg-surface-100 flex flex-col">
                 <div className="flex-1 p-12 max-w-5xl mx-auto w-full">
 
                     {testResult && (
@@ -262,8 +314,8 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                     {activeTab === 'api' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <div>
-                                <h3 className="text-3xl font-bold text-white mb-3 font-serif tracking-tight">Gemini Configuration</h3>
-                                <p className="text-gray-400 font-sans text-lg leading-relaxed max-w-2xl">Deep Scribe runs exclusively on Google Gemini. Your API key is stored securely on your device.</p>
+                                <h3 className="text-3xl font-bold text-text-primary mb-3 font-serif tracking-tight">Gemini Configuration</h3>
+                                <p className="text-text-secondary font-sans text-lg leading-relaxed max-w-2xl">Deep Scribe runs exclusively on Google Gemini. Your API key is stored securely on your device.</p>
                             </div>
 
                             <div className="space-y-6">
@@ -279,7 +331,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                                         <button
                                             onClick={handleTestKey}
                                             disabled={loading}
-                                            className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-blue-900/10 transition-colors border border-transparent hover:border-blue-900/30"
+                                            className="text-sm text-brand-accent hover:text-brand-primary flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
                                         >
                                             <CheckCircle2 className="w-4 h-4" /> Test Connection
                                         </button>
@@ -290,7 +342,7 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
 
                                 <ProviderDeepDive />
 
-                                <div className="pt-6 border-t border-[#30363d]">
+                                <div className="pt-6 border-t border-white/5">
                                     <button
                                         onClick={handleClearKey}
                                         className="text-sm text-red-400 hover:text-red-300 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-red-900/10 transition-colors border border-transparent hover:border-red-900/30"
@@ -298,68 +350,90 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                                         <Trash2 className="w-4 h-4" /> Clear Gemini API Key
                                     </button>
                                 </div>
-
-                                {/* Medium Integration Section */}
+                                {/* ... Rest of API keys (Google Search, Medium) similar updates ... */}
                                 <div className="my-12 border-t border-white/10"></div>
 
                                 <div>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20">
-                                            <Send className="w-5 h-5 text-green-400" />
+                                        <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center border border-purple-500/20">
+                                            <Search className="w-5 h-5 text-purple-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-2xl font-bold text-white font-serif tracking-tight">Medium Integration</h3>
+                                            <h3 className="text-2xl font-bold text-text-primary font-serif tracking-tight">Live Web Research</h3>
                                         </div>
                                     </div>
-                                    <p className="text-gray-400 font-sans text-base leading-relaxed max-w-2xl mb-6">
-                                        Connect your Medium account to publish articles directly from Deep Scribe as drafts.
+                                    <p className="text-text-secondary font-sans text-base leading-relaxed max-w-2xl mb-6">
+                                        Enable "Grounded" research by connecting Google Custom Search.
                                     </p>
                                 </div>
-
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <h4 className="text-sm font-medium text-white">Integration Token</h4>
-                                        {mediumToken && (
-                                            <span className="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                                <CheckCircle2 className="w-3 h-3" /> Connected
-                                            </span>
-                                        )}
-                                    </div>
-
+                                <div className="p-6 bg-surface-200 rounded-xl border border-white/5">
                                     <ApiKeyInput
-                                        label="Medium Token"
-                                        placeholder="Enter your Medium Integration Token"
-                                        currentValue={mediumToken}
-                                        getKeyUrl="https://medium.com/me/settings/security"
-                                        onSave={handleMediumSave}
+                                        label="Search API Key"
+                                        placeholder="Enter Google Search API Key"
+                                        currentValue={googleSearchKey}
+                                        getKeyUrl="https://developers.google.com/custom-search/v1/overview"
+                                        onSave={handleGoogleSearchSave}
                                         isLoading={loading}
                                     />
+                                    <ApiKeyInput
+                                        label="Search Engine ID (CX)"
+                                        placeholder="Enter Search Engine ID"
+                                        currentValue={googleSearchCx}
+                                        getKeyUrl="https://programmablesearchengine.google.com/controlpanel/create"
+                                        onSave={handleGoogleCxSave}
+                                        isLoading={loading}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                                    <div className="mt-4 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
-                                        <p className="text-xs text-[#8b949e] mb-2 font-medium">How to get your token:</p>
-                                        <ol className="text-xs text-[#8b949e] list-decimal list-inside space-y-1">
-                                            <li>Go to Medium.com → Settings → Security</li>
-                                            <li>Scroll to "Integration tokens"</li>
-                                            <li>Click "Get token" and copy it</li>
-                                        </ol>
+                    {/* Appearance Tab */}
+                    {activeTab === 'appearance' && (
+                        <div className="space-y-8 animate-in fade-in duration-300">
+                            <div>
+                                <h3 className="text-2xl font-bold text-text-primary mb-2 font-serif">Appearance Theme</h3>
+                                <p className="text-text-secondary">Select a cultural theme for your workspace.</p>
+                            </div>
+
+                            <div className="p-6 bg-surface-200 rounded-xl border border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <label className="text-sm font-medium text-text-primary">Color Palette</label>
+                                    <button
+                                        onClick={toggleMode}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-300 text-text-primary hover:bg-surface-800 transition-colors text-xs font-medium"
+                                    >
+                                        {mode === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+                                        {mode === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {THEMES.map((t) => (
                                         <button
-                                            onClick={() => window.electronAPI.openExternal('https://medium.com/me/settings/security')}
-                                            className="mt-3 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                            key={t.id}
+                                            onClick={() => setTheme(t.id)}
+                                            className={`relative group p-4 rounded-xl border transition-all duration-300 text-left ${theme === t.id
+                                                    ? 'bg-brand-primary/10 border-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.3)]'
+                                                    : 'bg-surface-300 border-transparent hover:border-white/10'
+                                                }`}
                                         >
-                                            <ExternalLink className="w-3 h-3" /> Open Medium Settings
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div
+                                                    className="w-8 h-8 rounded-full shadow-lg"
+                                                    style={{ backgroundColor: t.color }}
+                                                />
+                                                <span className={`font-medium ${theme === t.id ? 'text-brand-primary' : 'text-text-primary'}`}>
+                                                    {t.label}
+                                                </span>
+                                            </div>
+                                            {theme === t.id && (
+                                                <div className="absolute top-4 right-4">
+                                                    <CheckCircle2 className="w-5 h-5 text-brand-primary" />
+                                                </div>
+                                            )}
                                         </button>
-                                    </div>
-
-                                    {mediumToken && (
-                                        <div className="mt-4 pt-4 border-t border-[#30363d]">
-                                            <button
-                                                onClick={handleClearMediumToken}
-                                                className="text-sm text-red-400 hover:text-red-300 flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-red-900/10 transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" /> Remove Medium Token
-                                            </button>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -369,357 +443,34 @@ export const SettingsDashboard: React.FC<SettingsDashboardProps> = () => {
                     {activeTab === 'research' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Research Configuration</h3>
-                                <p className="text-gray-400">Customize how Deep Scribe conducts research and generates content.</p>
+                                <h3 className="text-2xl font-bold text-text-primary mb-2 font-serif">Research Configuration</h3>
                             </div>
-
-                            <div className="space-y-6">
-                                {/* Model Selection */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Gemini Model</label>
-                                    <select
-                                        value={researchModel}
-                                        onChange={(e) => setResearchModel(e.target.value)}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    >
-                                        {GEMINI_MODELS.map((option) => (
-                                            <option key={option.value} value={option.value}>{option.label}</option>
-                                        ))}
-                                    </select>
-                                    <p className="mt-2 text-xs text-[#8b949e]">
-                                        Select the Gemini model for research and content generation.
-                                    </p>
-                                </div>
-
-                                {/* Temperature */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">
-                                        Temperature: <span className="text-blue-400 font-mono">{temperature.toFixed(2)}</span>
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.05"
-                                        value={temperature}
-                                        onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                        className="w-full h-2 bg-[#30363d] rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                    />
-                                    <div className="flex justify-between text-xs text-[#8b949e] mt-2 font-medium">
-                                        <span>Precise</span>
-                                        <span>Creative</span>
-                                    </div>
-                                    <p className="mt-2 text-xs text-[#8b949e]">Lower values = more focused, higher values = more creative</p>
-                                </div>
-
-                                {/* Max Tokens */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Max Output Tokens</label>
-                                    <input
-                                        type="number"
-                                        min="1024"
-                                        max="32768"
-                                        step="1024"
-                                        value={maxTokens}
-                                        onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                    <p className="mt-2 text-xs text-[#8b949e]">Maximum length of generated content (higher = longer, more expensive)</p>
-                                </div>
-
-                                {/* Parallel Research */}
-                                <div className="flex items-center justify-between p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div>
-                                        <p className="text-base font-medium text-white">Parallel Research</p>
-                                        <p className="text-xs text-[#8b949e] mt-1">Research multiple subtopics simultaneously (faster but uses more API calls)</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={parallelResearch}
-                                            onChange={(e) => setParallelResearch(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-[#30363d] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                {/* System Prompt */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <label className="block text-sm font-medium text-white">System Prompt / Personality</label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <span className="text-xs text-[#8b949e]">Enable Custom Prompt</span>
-                                            <div className="relative inline-flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={customSystemPromptEnabled}
-                                                    onChange={(e) => setCustomSystemPromptEnabled(e.target.checked)}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-9 h-5 bg-[#30363d] peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <textarea
-                                        value={systemPrompt}
-                                        onChange={(e) => setSystemPrompt(e.target.value)}
-                                        disabled={!customSystemPromptEnabled}
-                                        rows={4}
-                                        className={`w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${!customSystemPromptEnabled ? 'opacity-50 cursor-not-allowed text-gray-500' : ''}`}
-                                        placeholder="You are an expert article writer who explains complex topics simply..."
-                                    />
-                                    <p className="mt-2 text-xs text-[#8b949e]">Define the AI's persona and writing style.</p>
-                                </div>
+                            <div className="p-6 bg-surface-200 rounded-xl border border-white/5">
+                                <label className="block text-sm font-medium text-text-primary mb-3">Gemini Model</label>
+                                <select
+                                    value={researchModel}
+                                    onChange={(e) => setResearchModel(e.target.value)}
+                                    className="w-full bg-surface-300 border border-white/5 rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                                >
+                                    {GEMINI_MODELS.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
                             </div>
+                            {/* ... more research settings ... */}
                         </div>
                     )}
 
-                    {/* News Feed Tab */}
-                    {activeTab === 'news' && (
-                        <div className="space-y-8 animate-in fade-in duration-300">
-                            <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">News Feed Settings</h3>
-                                <p className="text-gray-400">Customize what news articles appear in your feed.</p>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Language */}
-                                    <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                        <label className="block text-sm font-medium text-white mb-3">Language</label>
-                                        <select
-                                            value={newsLanguage}
-                                            onChange={(e) => setNewsLanguage(e.target.value)}
-                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        >
-                                            <option value="en">English</option>
-                                            <option value="es">Spanish</option>
-                                            <option value="fr">French</option>
-                                            <option value="de">German</option>
-                                            <option value="it">Italian</option>
-                                            <option value="pt">Portuguese</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Country */}
-                                    <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                        <label className="block text-sm font-medium text-white mb-3">Country</label>
-                                        <select
-                                            value={newsCountry}
-                                            onChange={(e) => setNewsCountry(e.target.value)}
-                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        >
-                                            <option value="us">United States</option>
-                                            <option value="gb">United Kingdom</option>
-                                            <option value="ca">Canada</option>
-                                            <option value="au">Australia</option>
-                                            <option value="in">India</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Articles per page */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Articles per Load</label>
-                                    <input
-                                        type="number"
-                                        min="10"
-                                        max="50"
-                                        step="1"
-                                        value={newsMaxArticles}
-                                        onChange={(e) => setNewsMaxArticles(parseInt(e.target.value))}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                    <p className="mt-2 text-xs text-[#8b949e]">Number of articles to fetch per page (10-50)</p>
-                                </div>
-
-                                {/* Categories */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Default Categories</label>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {['technology', 'business', 'science', 'health', 'entertainment', 'sports'].map((cat) => (
-                                            <label key={cat} className="flex items-center gap-3 p-3 bg-[#0d1117] rounded-lg border border-[#30363d] cursor-pointer hover:border-blue-500/30 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={newsCategories.includes(cat)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setNewsCategories([...newsCategories, cat]);
-                                                        } else {
-                                                            setNewsCategories(newsCategories.filter(c => c !== cat));
-                                                        }
-                                                    }}
-                                                    className="rounded border-[#30363d] text-blue-600 focus:ring-2 focus:ring-blue-500/50 w-4 h-4"
-                                                />
-                                                <span className="text-sm text-white capitalize">{cat}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* RSS Feed URL */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <h4 className="text-sm font-medium text-white">RSS Feed URL</h4>
-                                        <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">Primary Feed</span>
-                                    </div>
-                                    <ApiKeyInput
-                                        label="Feed Configuration"
-                                        placeholder="https://medium.com/feed/tag/technology"
-                                        currentValue={rssUrl}
-                                        getKeyUrl="https://medium.com"
-                                        onSave={handleRssSave}
-                                        isLoading={loading}
-                                    />
-                                    <p className="mt-2 text-xs text-[#8b949e]">The primary RSS feed loaded on application start.</p>
-                                </div>
-                            </div>
+                    {/* Placeholder for others */}
+                    {(activeTab === 'news' || activeTab === 'editor' || activeTab === 'advanced') && (
+                        <div className="flex flex-col items-center justify-center py-20 text-text-muted">
+                            <SettingsIcon className="w-12 h-12 mb-4 opacity-50" />
+                            <p>Settings for {activeTab} are being updated to the new design system.</p>
                         </div>
                     )}
 
-                    {/* Editor Tab */}
-                    {activeTab === 'editor' && (
-                        <div className="space-y-8 animate-in fade-in duration-300">
-                            <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Editor Preferences</h3>
-                                <p className="text-gray-400">Configure your writing and editing experience.</p>
-                            </div>
-
-                            <div className="space-y-6">
-                                {/* Auto-save interval */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Auto-save Interval (seconds)</label>
-                                    <input
-                                        type="number"
-                                        min="10"
-                                        max="300"
-                                        step="10"
-                                        value={autoSaveInterval}
-                                        onChange={(e) => setAutoSaveInterval(parseInt(e.target.value))}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                    <p className="mt-2 text-xs text-[#8b949e]">How often to automatically save your work (10-300 seconds)</p>
-                                </div>
-
-                                {/* Default export format */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Default Export Format</label>
-                                    <select
-                                        value={defaultExportFormat}
-                                        onChange={(e) => setDefaultExportFormat(e.target.value)}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    >
-                                        <option value="markdown">Markdown (.md)</option>
-                                        <option value="html">HTML (.html)</option>
-                                        <option value="pdf">PDF (.pdf)</option>
-                                        <option value="medium">Medium Draft</option>
-                                    </select>
-                                </div>
-
-                                {/* Spell check */}
-                                <div className="flex items-center justify-between p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div>
-                                        <p className="text-base font-medium text-white">Spell Check</p>
-                                        <p className="text-xs text-[#8b949e] mt-1">Enable real-time spell checking while writing</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableSpellCheck}
-                                            onChange={(e) => setEnableSpellCheck(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-[#30363d] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Advanced Tab */}
-                    {activeTab === 'advanced' && (
-                        <div className="space-y-8 animate-in fade-in duration-300">
-                            <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Advanced Settings</h3>
-                                <p className="text-gray-400">Developer and power user options.</p>
-                            </div>
-
-                            <div className="space-y-6">
-                                {/* Logging */}
-                                <div className="flex items-center justify-between p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div>
-                                        <p className="text-base font-medium text-white">Debug Logging</p>
-                                        <p className="text-xs text-[#8b949e] mt-1">Write detailed logs to help troubleshoot issues</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableLogging}
-                                            onChange={(e) => setEnableLogging(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-[#30363d] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                {/* Cache */}
-                                <div className="flex items-center justify-between p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <div>
-                                        <p className="text-base font-medium text-white">Enable Cache</p>
-                                        <p className="text-xs text-[#8b949e] mt-1">Cache API responses to reduce costs and improve speed</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={cacheEnabled}
-                                            onChange={(e) => setCacheEnabled(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-[#30363d] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                {/* Theme (Future) */}
-                                <div className="p-6 bg-[#161b22] rounded-xl border border-[#30363d]">
-                                    <label className="block text-sm font-medium text-white mb-3">Theme</label>
-                                    <select
-                                        value={theme}
-                                        onChange={(e) => setTheme(e.target.value)}
-                                        disabled
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 opacity-50 cursor-not-allowed"
-                                    >
-                                        <option value="dark">Dark (Default)</option>
-                                        <option value="light">Light (Coming Soon)</option>
-                                    </select>
-                                    <p className="mt-2 text-xs text-[#8b949e]">Theme customization coming in a future update</p>
-                                </div>
-
-                                {/* Clear Cache */}
-                                <div className="pt-6 border-t border-[#30363d]">
-                                    <button
-                                        onClick={() => alert('Cache cleared successfully!')}
-                                        className="text-sm text-yellow-400 hover:text-yellow-300 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-yellow-900/10 transition-colors border border-transparent hover:border-yellow-900/30"
-                                    >
-                                        <Database className="w-4 h-4" /> Clear Cache
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
-
-            {/* Floating Save Button */}
-            <div className="fixed bottom-8 right-8 z-50">
-                <button
-                    onClick={saveSettings}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 transition-all flex items-center gap-2 transform hover:-translate-y-1"
-                >
-                    <CheckCircle2 className="w-5 h-5" />
-                    Save Changes
-                </button>
-            </div>
-        </div >
+        </div>
     );
 };

@@ -128,18 +128,18 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
     };
 
     return (
-        <div className="w-full h-full bg-[#0a0a0a] flex flex-col md:flex-row overflow-hidden">
+        <div className="w-full h-full bg-surface-100 flex flex-col md:flex-row overflow-hidden text-text-primary">
             {/* Sidebar */}
-            <div className="w-full md:w-64 border-r border-[#333] bg-[#161618] flex flex-col shrink-0">
+            <div className="w-full md:w-64 border-r border-white/5 bg-surface-200 flex flex-col shrink-0">
                 {/* Header */}
-                <div className="p-6 border-b border-[#333] bg-[#161618]">
+                <div className="p-6 border-b border-white/5 bg-surface-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center border border-blue-500/20">
-                            <Sparkles className="w-5 h-5 text-blue-400" />
+                        <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center border border-brand-primary/20">
+                            <Sparkles className="w-5 h-5 text-brand-primary" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white leading-tight">Research</h2>
-                            <p className="text-xs text-[#8b949e]">Deep topic analysis</p>
+                            <h2 className="text-lg font-bold text-text-primary leading-tight font-serif">Research</h2>
+                            <p className="text-xs text-text-muted">Deep topic analysis</p>
                         </div>
                     </div>
                 </div>
@@ -153,13 +153,12 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
                                 key={tab.id}
                                 onClick={() => tab.enabled && setActiveTab(tab.id)}
                                 disabled={!tab.enabled}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                                    !tab.enabled
-                                        ? 'opacity-50 cursor-not-allowed text-[#8b949e]'
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${!tab.enabled
+                                        ? 'opacity-50 cursor-not-allowed text-text-muted'
                                         : activeTab === tab.id
-                                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                        : 'text-[#8b949e] hover:text-white hover:bg-[#30363d]/30'
-                                }`}
+                                            ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                                            : 'text-text-secondary hover:text-text-primary hover:bg-surface-300'
+                                    }`}
                             >
                                 <Icon className="w-4 h-4" />
                                 {tab.label}
@@ -169,7 +168,7 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
                 </nav>
 
                 {/* Status Indicator */}
-                <div className="p-4 border-t border-[#333]">
+                <div className="p-4 border-t border-white/5">
                     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${statusInfo.bg}`}>
                         {(status === 'surveying' || status === 'researching' || status === 'synthesizing') && (
                             <Loader2 className={`w-3 h-3 animate-spin ${statusInfo.color}`} />
@@ -183,7 +182,7 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
                     <div className="p-4 pt-0">
                         <button
                             onClick={reset}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#8b949e] hover:text-white hover:bg-[#30363d]/30 transition-all"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-300 transition-all"
                         >
                             <RotateCcw className="w-4 h-4" />
                             New Research
@@ -193,7 +192,7 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-hidden bg-[#121212] flex flex-col">
+            <div className="flex-1 overflow-hidden bg-surface-100 flex flex-col">
                 <div className="flex-1 overflow-hidden">
                     {activeTab === 'topic' && <TopicPanel onOpenSettings={onOpenSettings} />}
                     {activeTab === 'sources' && <SourcesPanel />}
@@ -208,11 +207,10 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
                     <button
                         onClick={handleSaveToKB}
                         disabled={isSavingToKB || savedToKB}
-                        className={`px-5 py-3 rounded-full font-bold shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 ${
-                            savedToKB
+                        className={`px-5 py-3 rounded-full font-bold shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 ${savedToKB
                                 ? 'bg-green-600/20 text-green-400 border border-green-500/30 cursor-default'
-                                : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/20 hover:shadow-purple-500/40'
-                        }`}
+                                : 'bg-brand-primary hover:bg-brand-secondary text-surface-100 shadow-brand-primary/20 hover:shadow-brand-primary/40'
+                            }`}
                     >
                         {isSavingToKB ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -227,7 +225,7 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
                     {/* Export to Draft Button */}
                     <button
                         onClick={handleExport}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 transition-all flex items-center gap-2 transform hover:-translate-y-1"
+                        className="bg-brand-secondary hover:bg-brand-accent text-surface-100 px-6 py-3 rounded-full font-bold shadow-2xl shadow-brand-secondary/20 hover:shadow-brand-secondary/40 transition-all flex items-center gap-2 transform hover:-translate-y-1"
                     >
                         <Download className="w-5 h-5" />
                         Export to Draft
@@ -238,7 +236,7 @@ export function ResearchDashboard({ onOpenSettings }: ResearchDashboardProps) {
             {/* KB Stats Indicator */}
             {totalDocuments > 0 && (
                 <div className="fixed bottom-8 left-8 z-40">
-                    <div className="bg-[#161b22] border border-[#30363d] rounded-full px-4 py-2 flex items-center gap-2 text-sm text-[#8b949e]">
+                    <div className="bg-surface-200 border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 text-sm text-text-muted">
                         <Database className="w-4 h-4" />
                         <span>{totalDocuments} notes in KB</span>
                     </div>

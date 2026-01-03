@@ -12,12 +12,16 @@ export class SettingsService {
     private configDir: string;
     private geminiKeyPath: string;
     private mediumTokenPath: string;
+    private googleSearchKeyPath: string;
+    private googleSearchCxPath: string;
     private store: any;
 
     constructor() {
         this.configDir = path.join(app.getPath('userData'), 'keys');
         this.geminiKeyPath = path.join(this.configDir, 'gemini');
         this.mediumTokenPath = path.join(this.configDir, 'medium');
+        this.googleSearchKeyPath = path.join(this.configDir, 'google_search_key');
+        this.googleSearchCxPath = path.join(this.configDir, 'google_search_cx');
 
         if (!fs.existsSync(this.configDir)) {
             fs.mkdirSync(this.configDir, { recursive: true });
@@ -176,5 +180,79 @@ export class SettingsService {
 
     hasMediumToken(): boolean {
         return !!this.getMediumToken();
+    }
+
+    // GOOGLE SEARCH API KEY
+    getGoogleSearchKey(): string | null {
+        try {
+            if (!fs.existsSync(this.googleSearchKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                const encrypted = fs.readFileSync(this.googleSearchKeyPath);
+                return safeStorage.decryptString(encrypted);
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read Google Search Key:', e);
+            return null;
+        }
+    }
+
+    setGoogleSearchKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid Key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.googleSearchKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Encryption unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    hasGoogleSearchKey(): boolean { return !!this.getGoogleSearchKey(); }
+    
+    clearGoogleSearchKey(): { success: boolean } {
+        try {
+            if (fs.existsSync(this.googleSearchKeyPath)) fs.unlinkSync(this.googleSearchKeyPath);
+            return { success: true };
+        } catch (e) { return { success: false }; }
+    }
+
+    // GOOGLE SEARCH CX (ENGINE ID)
+    getGoogleSearchCx(): string | null {
+        try {
+            if (!fs.existsSync(this.googleSearchCxPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                const encrypted = fs.readFileSync(this.googleSearchCxPath);
+                return safeStorage.decryptString(encrypted);
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read Google Search CX:', e);
+            return null;
+        }
+    }
+
+    setGoogleSearchCx(cx: string): { success: boolean; error?: string } {
+        try {
+            if (!cx) return { success: false, error: 'Invalid CX' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.googleSearchCxPath, safeStorage.encryptString(cx.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Encryption unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    hasGoogleSearchCx(): boolean { return !!this.getGoogleSearchCx(); }
+
+    clearGoogleSearchCx(): { success: boolean } {
+        try {
+            if (fs.existsSync(this.googleSearchCxPath)) fs.unlinkSync(this.googleSearchCxPath);
+            return { success: true };
+        } catch (e) { return { success: false }; }
     }
 }

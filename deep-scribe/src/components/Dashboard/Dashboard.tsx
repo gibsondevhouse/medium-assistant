@@ -23,9 +23,11 @@ interface DashboardTab {
 interface DashboardProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
+  onNavigate?: (view: string) => void;
+  onCreateArticle?: () => void;
 }
 
-export function Dashboard({ activeTab: controlledActiveTab, onTabChange }: DashboardProps) {
+export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavigate, onCreateArticle }: DashboardProps) {
   // Default tabs that come with the dashboard
   const defaultTabs: DashboardTab[] = [
     {

@@ -2,19 +2,32 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
 
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+export type LogCategory = 'main' | 'renderer' | 'python';
+
+interface LogEntry {
+    timestamp: string;
+    level: LogLevel;
+    category: LogCategory;
+    message: string;
+    data?: any;
+    sessionId: string;
+}
+
 class Logger {
     private logFile: string | null = null;
     private initialized: boolean = false;
+    private sessionId: string;
+    private maxLogFiles = 5;
 
     constructor() {
+        this.sessionId = Date.now().toString(36); // Simple session ID
         this.init();
     }
 
     private init() {
         if (this.initialized) return;
 
-        // Determine log directory (userData/logs or local logs for dev)
-        // In dev, we prefer local 'logs' folder for easy access
         const isDev = process.env.NODE_ENV === 'development';
         let logDir = '';
 
@@ -33,60 +46,59 @@ class Logger {
             }
         }
 
-        const timestamp = this.getLocalTimestamp();
-        this.logFile = path.join(logDir, `debug-${timestamp.filename}.log`);
+        // Rotate logs: Delete oldest if we have more than maxLogFiles
+        this.rotateLogs(logDir);
 
-        console.log(`[Logger] Initialized. Writing to: ${this.logFile}`);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        this.logFile = path.join(logDir, `deep-scribe-${timestamp}.jsonl`);
+
+        // Initial log entry
+        this.write({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            category: 'main',
+            message: 'Logger initialized',
+            data: { 
+                logFile: this.logFile, 
+                env: process.env.NODE_ENV,
+                version: app.getVersion() 
+            },
+            sessionId: this.sessionId
+        });
+
+        console.log(`[Logger] Initialized. Writing JSONL to: ${this.logFile}`);
         this.initialized = true;
     }
 
-    private getLocalTimestamp() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        const ms = String(now.getMilliseconds()).padStart(3, '0');
-        return {
-            str: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`,
-            filename: `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`
-        };
-    }
+    private rotateLogs(logDir: string) {
+        try {
+            const files = fs.readdirSync(logDir)
+                .filter(f => f.startsWith('deep-scribe-') && f.endsWith('.jsonl'))
+                .map(f => ({ name: f, time: fs.statSync(path.join(logDir, f)).mtime.getTime() }))
+                .sort((a, b) => b.time - a.time); // Newest first
 
-    private formatArg(arg: any): string {
-        if (arg instanceof Error || (arg && typeof arg === 'object' && 'message' in arg && 'stack' in arg)) {
-            return JSON.stringify({
-                name: arg.name || 'Error',
-                message: arg.message,
-                stack: arg.stack,
-                ...arg
-            }, null, 2);
-        }
-        if (typeof arg === 'object') {
-            try {
-                return JSON.stringify(arg);
-            } catch (e) {
-                return '[Circular/Unserializable]';
+            if (files.length >= this.maxLogFiles) {
+                const toDelete = files.slice(this.maxLogFiles);
+                for (const file of toDelete) {
+                    fs.unlinkSync(path.join(logDir, file.name));
+                    console.log(`[Logger] Rotated old log file: ${file.name}`);
+                }
             }
+        } catch (e) {
+            console.error('[Logger] Failed to rotate logs:', e);
         }
-        return String(arg);
     }
 
-    public log(level: string, message: any, ...args: any[]) {
+    private write(entry: LogEntry) {
         if (!this.logFile) return;
 
-        const timestamp = this.getLocalTimestamp().str;
-        const formattedMessage = typeof message === 'string' ? message : this.formatArg(message);
-        const formattedArgs = args.map(a => this.formatArg(a)).join(' ');
-        const logLine = `[${timestamp}] [${level.toUpperCase()}] ${formattedMessage} ${formattedArgs}\n`;
-
-        // Also write to stdout/stderr for dev console visibility
-        if (level === 'error') {
-            console.error(logLine.trim());
-        } else {
-            console.log(logLine.trim());
+        const logLine = JSON.stringify(entry) + '\n';
+        
+        // Also write to stdout for dev console (formatted for readability)
+        if (process.env.NODE_ENV === 'development') {
+            const color = entry.level === 'error' ? '\x1b[31m' : (entry.level === 'warn' ? '\x1b[33m' : '\x1b[36m');
+            const reset = '\x1b[0m';
+            console.log(`${color}[${entry.level.toUpperCase()}]${reset} [${entry.category}] ${entry.message}`, entry.data ? entry.data : '');
         }
 
         fs.appendFile(this.logFile, logLine, (err) => {
@@ -94,11 +106,46 @@ class Logger {
         });
     }
 
-    public info(message: any, ...args: any[]) { this.log('info', message, ...args); }
-    public error(message: any, ...args: any[]) { this.log('error', message, ...args); }
-    public warn(message: any, ...args: any[]) { this.log('warn', message, ...args); }
-    public debug(message: any, ...args: any[]) { this.log('debug', message, ...args); }
+    public log(level: LogLevel, category: LogCategory, message: string, data?: any) {
+        this.write({
+            timestamp: new Date().toISOString(),
+            level,
+            category,
+            message,
+            data,
+            sessionId: this.sessionId
+        });
+    }
 
+    // Convenience methods for Main process
+    public info(message: string, data?: any) { this.log('info', 'main', message, data); }
+    public warn(message: string, data?: any) { this.log('warn', 'main', message, data); }
+    public error(message: string, data?: any) { this.log('error', 'main', message, data); }
+    public debug(message: string, data?: any) { this.log('debug', 'main', message, data); }
+
+    // Python stdout parser (assumes Python outputs JSON string or plain text)
+    public logPython(message: string) {
+        try {
+            // Try to parse if it's a JSON string from our Python logger
+            const parsed = JSON.parse(message);
+            if (parsed.level && parsed.message) {
+                this.write({
+                    timestamp: parsed.timestamp || new Date().toISOString(),
+                    level: parsed.level.toLowerCase() as LogLevel,
+                    category: 'python',
+                    message: parsed.message,
+                    data: parsed.data,
+                    sessionId: this.sessionId
+                });
+                return;
+            }
+        } catch (e) {
+            // Not JSON, fall back to raw text
+        }
+        
+        this.log('info', 'python', message);
+    }
+    
     public getLogFilePath() { return this.logFile; }
 }
 

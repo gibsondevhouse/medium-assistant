@@ -297,7 +297,7 @@ export const Editor: React.FC = () => {
     if (!activeDraft) return <div className="flex h-full items-center justify-center text-gray-500">Select a draft to start writing.</div>;
 
     return (
-        <div className="flex flex-col h-full bg-[#0d1117] relative">
+        <div className="flex flex-col h-full bg-surface-100 relative text-text-primary">
             {/* Header / Metadata */}
             <div className="shrink-0 px-8 pt-8 pb-4 space-y-4 max-w-4xl mx-auto w-full">
 
@@ -306,19 +306,19 @@ export const Editor: React.FC = () => {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-transparent text-4xl font-bold text-white placeholder-gray-600 outline-none font-serif"
+                    className="w-full bg-transparent text-4xl font-bold text-text-primary placeholder-text-muted outline-none font-serif"
                     placeholder="Article Title"
                 />
 
                 {/* Metadata Row */}
-                <div className="flex items-center gap-4 text-sm text-[#8b949e]">
-                    <div className="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] focus-within:border-blue-500/50 transition-colors">
+                <div className="flex items-center gap-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-2 bg-surface-200 px-3 py-1.5 rounded-full border border-white/5 focus-within:border-brand-primary/50 transition-colors">
                         <Tag size={14} />
                         <input
                             type="text"
                             value={tags}
                             onChange={(e) => setTags(e.target.value)}
-                            className="bg-transparent outline-none text-gray-300 w-full min-w-[200px]"
+                            className="bg-transparent outline-none text-text-secondary w-full min-w-[200px] placeholder-text-muted"
                             placeholder="Add tags (comma separated)..."
                         />
                     </div>
@@ -335,7 +335,7 @@ export const Editor: React.FC = () => {
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             disabled={isExporting}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-300 transition-all disabled:opacity-50"
                             title="Export options"
                         >
                             {isExporting ? (
@@ -355,24 +355,24 @@ export const Editor: React.FC = () => {
                                     onClick={() => setShowExportMenu(false)}
                                 />
                                 {/* Dropdown menu */}
-                                <div className="absolute top-full right-0 mt-1 w-44 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div className="absolute top-full right-0 mt-1 w-44 bg-surface-200 border border-white/10 rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                                     <button
                                         onClick={handleExportPDF}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-300 transition-colors"
                                     >
                                         <FileType size={16} />
                                         <span>Export as PDF</span>
                                     </button>
                                     <button
                                         onClick={handleExportHTML}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-300 transition-colors"
                                     >
                                         <FileText size={16} />
                                         <span>Export as HTML</span>
                                     </button>
                                     <button
                                         onClick={handleExportJSON}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b949e] hover:text-white hover:bg-[#30363d]/50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-300 transition-colors"
                                     >
                                         <FileJson size={16} />
                                         <span>Export as JSON</span>

@@ -81,11 +81,10 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
             >
                 <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                        isUser
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
                             ? 'bg-blue-600 text-white'
                             : 'bg-[#1c1c1e] border border-[#333] text-gray-200'
-                    }`}
+                        }`}
                 >
                     {/* Message content */}
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
@@ -133,17 +132,17 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
     };
 
     return (
-        <div className={`flex flex-col h-full bg-[#0a0a0a] ${className}`}>
+        <div className={`flex flex-col h-full bg-surface-100 ${className} text-text-primary`}>
             {/* Header */}
-            <div className="shrink-0 px-6 py-4 border-b border-[#333] bg-[#161618]">
+            <div className="shrink-0 px-6 py-4 border-b border-white/5 bg-surface-200">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center border border-purple-500/20">
-                            <MessageSquare className="w-5 h-5 text-purple-400" />
+                        <div className="w-10 h-10 bg-brand-secondary/10 rounded-lg flex items-center justify-center border border-brand-secondary/20">
+                            <MessageSquare className="w-5 h-5 text-brand-secondary" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white">Chat with Notes</h2>
-                            <p className="text-xs text-[#8b949e]">
+                            <h2 className="text-lg font-bold text-text-primary font-serif">Chat with Notes</h2>
+                            <p className="text-xs text-text-muted">
                                 {totalDocuments > 0
                                     ? `${totalDocuments} notes in your knowledge base`
                                     : 'Save research to start chatting'}
@@ -154,7 +153,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                     {chatMessages.length > 0 && (
                         <button
                             onClick={clearChat}
-                            className="p-2 text-[#8b949e] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="p-2 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                             title="Clear chat"
                         >
                             <Trash2 className="w-4 h-4" />
@@ -168,13 +167,13 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                 {chatMessages.length === 0 ? (
                     // Empty state
                     <div className="h-full flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-4 border border-purple-500/20">
-                            <Sparkles className="w-8 h-8 text-purple-400" />
+                        <div className="w-16 h-16 bg-brand-secondary/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-secondary/20">
+                            <Sparkles className="w-8 h-8 text-brand-secondary" />
                         </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">
+                        <h3 className="text-lg font-semibold text-text-primary mb-2 font-serif">
                             Ask about your research
                         </h3>
-                        <p className="text-sm text-[#8b949e] max-w-sm mb-6">
+                        <p className="text-sm text-text-secondary max-w-sm mb-6">
                             {totalDocuments > 0
                                 ? 'Your knowledge base is ready. Ask questions about your saved research notes.'
                                 : 'Save research reports to your knowledge base first, then come back to chat with your notes.'}
@@ -190,7 +189,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                                                 setInput(suggestion);
                                                 inputRef.current?.focus();
                                             }}
-                                            className="px-3 py-1.5 text-xs bg-[#1c1c1e] border border-[#333] rounded-full text-[#8b949e] hover:text-white hover:border-purple-500/30 transition-colors"
+                                            className="px-3 py-1.5 text-xs bg-surface-200 border border-white/5 rounded-full text-text-secondary hover:text-text-primary hover:border-brand-secondary/30 transition-colors"
                                         >
                                             {suggestion}
                                         </button>
@@ -207,9 +206,9 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                         {/* Loading indicator */}
                         {isChatLoading && (
                             <div className="flex justify-start mb-4">
-                                <div className="bg-[#1c1c1e] border border-[#333] rounded-2xl px-4 py-3 flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                                    <span className="text-sm text-[#8b949e]">Searching notes...</span>
+                                <div className="bg-surface-200 border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-brand-secondary" />
+                                    <span className="text-sm text-text-muted">Searching notes...</span>
                                 </div>
                             </div>
                         )}
@@ -227,7 +226,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
             </div>
 
             {/* Input Area */}
-            <div className="shrink-0 p-4 border-t border-[#333] bg-[#161618]">
+            <div className="shrink-0 p-4 border-t border-white/5 bg-surface-200">
                 <div className="flex items-end gap-3">
                     <div className="flex-1 relative">
                         <textarea
@@ -242,7 +241,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                             }
                             disabled={totalDocuments === 0 || isChatLoading}
                             rows={1}
-                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-white placeholder-[#8b949e] resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-surface-300 border border-white/5 rounded-xl px-4 py-3 text-text-primary placeholder-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 focus:border-brand-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ minHeight: '48px', maxHeight: '120px' }}
                         />
                     </div>
@@ -250,7 +249,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                     <button
                         onClick={handleSend}
                         disabled={!input.trim() || isChatLoading || totalDocuments === 0}
-                        className="p-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 disabled:cursor-not-allowed rounded-xl text-white transition-colors"
+                        className="p-3 bg-brand-secondary hover:bg-brand-secondary/80 disabled:bg-brand-secondary/50 disabled:cursor-not-allowed rounded-xl text-surface-100 transition-colors"
                     >
                         {isChatLoading ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -261,7 +260,7 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
                 </div>
 
                 {/* Knowledge base status */}
-                <div className="mt-2 flex items-center gap-2 text-xs text-[#8b949e]">
+                <div className="mt-2 flex items-center gap-2 text-xs text-text-muted">
                     <Database className="w-3 h-3" />
                     <span>
                         {totalDocuments > 0
@@ -272,4 +271,4 @@ export function ChatWithNotes({ className = '', onOpenSettings, navigateToTab }:
             </div>
         </div>
     );
-}
+};

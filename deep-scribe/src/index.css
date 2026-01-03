@@ -8,104 +8,240 @@ html, body, #root {
   width: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  background-color: var(--surface-100);
+  color: var(--text-primary);
+  font-family: 'Instrument Sans', sans-serif;
 }
 
-/* Custom Scrollbar Styling */
-/* Hide default scrollbars everywhere */
+/* =========================================
+   THEME ENGINE: JULES EDITION
+   ========================================= */
+
+:root {
+  /* Default Theme (Google Native / Vibranium Hybrid) */
+  --surface-100: #0a0f25; /* Harlem Midnight */
+  --surface-200: #161b33;
+  --surface-300: #232946;
+  --surface-800: #050814;
+  --surface-900: #02030a;
+
+  --brand-primary: #d4af37; /* Harlem Gold */
+  --brand-secondary: #800020; /* Deep Velvet */
+  --brand-accent: #a8a9ad;   /* Smoke Silver */
+
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+/* --- 1. HARLEM NIGHTS (Noir/Jazz) --- */
+/* Default Light Mode */
+[data-theme='harlem_nights'][data-mode='light'] {
+  --surface-100: #f5f5f0; /* Cream Paper */
+  --surface-200: #eae4d1;
+  --surface-300: #dcd0b9;
+  --surface-800: #3e3325;
+  --surface-900: #2a2218;
+  --brand-primary: #800020; /* Velvet */
+  --brand-secondary: #d4af37; /* Gold */
+  --brand-accent: #2e2e2e; /* Piano Key Black */
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+}
+/* Default Dark Mode */
+[data-theme='harlem_nights'][data-mode='dark'] {
+  --surface-100: #0a0f25; /* Midnight Jazz */
+  --surface-200: #141a33;
+  --surface-300: #202640;
+  --surface-800: #050711;
+  --surface-900: #000000;
+  --brand-primary: #d4af37; /* Brass */
+  --brand-secondary: #6e001a; /* Dark Cabaret */
+  --brand-accent: #a8a9ad; /* Cigarette Smoke */
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+}
+
+/* --- 2. VIBRANIUM (Wakanda Tech) --- */
+[data-theme='vibranium'][data-mode='light'] {
+  --surface-100: #e8eaf6;
+  --surface-200: #c5cae9;
+  --surface-300: #9fa8da;
+  --surface-800: #3f51b5;
+  --surface-900: #283593;
+  --brand-primary: #6200ea; /* Purple */
+  --brand-secondary: #304ffe;
+  --brand-accent: #00b0ff;
+  --text-primary: #1a237e;
+  --text-secondary: #3949ab;
+}
+[data-theme='vibranium'][data-mode='dark'] {
+  --surface-100: #111111; /* Carbon Fiber */
+  --surface-200: #1a1a1a;
+  --surface-300: #252525;
+  --surface-800: #0a0a0a;
+  --surface-900: #000000;
+  --brand-primary: #6a0dad; /* Vibranium Glow */
+  --brand-secondary: #4b0082;
+  --brand-accent: #00f0ff; /* Energy Shield */
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+}
+
+/* --- 3. KENTE CLOTH (Heritage) --- */
+[data-theme='kente_cloth'][data-mode='light'] {
+  --surface-100: #fff9e6; /* Raw Cotton */
+  --surface-200: #ffeec2;
+  --surface-300: #ffdb99;
+  --surface-800: #006b3f;
+  --surface-900: #004d2c;
+  --brand-primary: #ce1126; /* Lifeblood Red */
+  --brand-secondary: #fcd116; /* Gold */
+  --brand-accent: #006b3f; /* Earth Green */
+  --text-primary: #000000;
+  --text-secondary: #4a3b2a;
+}
+[data-theme='kente_cloth'][data-mode='dark'] {
+  --surface-100: #1a150e; /* Espresso */
+  --surface-200: #2b2318;
+  --surface-300: #3d3122;
+  --surface-800: #0a0805;
+  --surface-900: #000000;
+  --brand-primary: #fcd116; /* Gold thread */
+  --brand-secondary: #ce1126; /* Red thread */
+  --brand-accent: #008f53; /* Green thread */
+  --text-primary: #ffffff;
+  --text-secondary: #cfc5b8;
+}
+
+/* --- 4. BLACK ICE (Stealth) --- */
+[data-theme='black_ice'][data-mode='dark'] {
+  --surface-100: #050505; /* Obsidian */
+  --surface-200: #0f1214;
+  --surface-300: #1a1e21;
+  --surface-800: #000000;
+  --surface-900: #000000;
+  --brand-primary: #a5f2f3; /* Ice Blue */
+  --brand-secondary: #708090; /* Slate */
+  --brand-accent: #ffffff; /* Glare */
+  --text-primary: #f0f8ff;
+  --text-secondary: #8e959b;
+}
+/* Fallback light mode for black ice is just 'Ice' */
+[data-theme='black_ice'][data-mode='light'] {
+  --surface-100: #f0f8ff;
+  --surface-200: #dbeaff;
+  --surface-300: #c2d9ff;
+  --surface-800: #334e68;
+  --surface-900: #102a43;
+  --brand-primary: #0044cc;
+  --brand-secondary: #627d98;
+  --brand-accent: #002244;
+  --text-primary: #102a43;
+  --text-secondary: #486581;
+}
+
+/* --- 5. AKATSUKI (Red Clouds) --- */
+[data-theme='akatsuki'][data-mode='dark'] {
+  --surface-100: #0f0f0f; /* Cloak Black */
+  --surface-200: #1f1f1f;
+  --surface-300: #2d2d2d;
+  --surface-800: #050505;
+  --surface-900: #000000;
+  --brand-primary: #ba1319; /* Cloud Red */
+  --brand-secondary: #e6e6e6; /* Cloud White Border */
+  --brand-accent: #8b0000; /* Dark Blood */
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+}
+/* Akatsuki light mode? Maybe "Hidden Rain Village" grey */
+[data-theme='akatsuki'][data-mode='light'] {
+  --surface-100: #e6e6e6;
+  --surface-200: #cccccc;
+  --surface-300: #b3b3b3;
+  --surface-800: #4d4d4d;
+  --surface-900: #333333;
+  --brand-primary: #ba1319;
+  --brand-secondary: #000000;
+  --brand-accent: #990000;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+}
+
+/* --- 6. UZUMAKI (Sage Mode) --- */
+[data-theme='uzumaki'][data-mode='dark'] {
+  --surface-100: #1a1a1a;
+  --surface-200: #262626;
+  --surface-300: #333333;
+  --surface-800: #0d0d0d;
+  --surface-900: #000000;
+  --brand-primary: #f66c2d; /* Jumpsuit Orange */
+  --brand-secondary: #e7e419; /* Rasenshuriken / Sage Eyes */
+  --brand-accent: #4691cc; /* Rasengan Blue */
+  --text-primary: #f0ebdf; /* Scroll White */
+  --text-secondary: #a3a3a3;
+}
+[data-theme='uzumaki'][data-mode='light'] {
+  --surface-100: #fefcf5;
+  --surface-200: #f0ebdf;
+  --surface-300: #e5e5e5;
+  --surface-800: #f66c2d;
+  --surface-900: #cc4d15;
+  --brand-primary: #f66c2d;
+  --brand-secondary: #4691cc;
+  --brand-accent: #e7e419;
+  --text-primary: #333333;
+  --text-secondary: #665c54;
+}
+
+/* --- 7. BYAKUGAN (All Seeing) --- */
+[data-theme='byakugan'][data-mode='light'] {
+  --surface-100: #f8f8ff; /* Ghost White */
+  --surface-200: #e6e6fa; /* Lavender */
+  --surface-300: #dcd0ff;
+  --surface-800: #483d8b;
+  --surface-900: #191970;
+  --brand-primary: #7b68ee; /* Medium Slate Blue */
+  --brand-secondary: #b0c4de; /* Light Steel Blue */
+  --brand-accent: #9370db; /* Medium Purple */
+  --text-primary: #191970; /* Midnight Blue */
+  --text-secondary: #483d8b;
+}
+[data-theme='byakugan'][data-mode='dark'] {
+  --surface-100: #191925; /* Dark Lavender */
+  --surface-200: #252536;
+  --surface-300: #303048;
+  --surface-800: #0f0f16;
+  --surface-900: #050508;
+  --brand-primary: #dcd0ff; /* Pale Pupil */
+  --brand-secondary: #7b68ee; /* Chakra Purple */
+  --brand-accent: #ffffff; /* Pure Vision */
+  --text-primary: #f8f8ff;
+  --text-secondary: #a0a0b0;
+}
+
+
+/* Custom Scrollbar Styling (Retained & Updated) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.5);
+  background: var(--surface-300); /* Dynamic based on theme */
   border-radius: 4px;
-  min-height: 40px; /* Fixed minimum height */
+  min-height: 40px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 148, 158, 0.8);
+  background: var(--brand-accent); /* Highlight on hover */
+}
+/* ... Rest of scrollbar styles adapted to vars ... */
+.custom-scrollbar-thumb {
+    background-color: var(--surface-300);
+}
+.custom-scrollbar-thumb:hover {
+    background-color: var(--brand-accent);
 }
 
-/* Horizontal scrollbar specific - reduce width */
-::-webkit-scrollbar-thumb:horizontal {
-  min-width: 20px; /* Narrow width for horizontal scrollbar */
-}
-
-/* Firefox scrollbar styling */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 148, 158, 0.5) transparent;
-}
-
-/* Utility class to hide scrollbar while keeping functionality */
-.scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-
-/* Hide scrollbar but keep scroll functionality - ultra thin */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-
-/* Custom scrollbar for horizontal scroll containers */
-.custom-scrollbar-horizontal {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.custom-scrollbar-horizontal::-webkit-scrollbar {
-  height: 8px;
-}
-
-.custom-scrollbar-horizontal::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.5);
-  border-radius: 4px;
-  min-width: 20px; /* Narrow width for horizontal scrollbar */
-}
-
-.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 148, 158, 0.8);
-}
-
-/* Custom scrollbar for vertical scroll containers */
-.custom-scrollbar-vertical {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.custom-scrollbar-vertical::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar-vertical::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar-vertical::-webkit-scrollbar-thumb {
-  background: rgba(139, 148, 158, 0.5);
-  border-radius: 4px;
-  min-height: 40px; /* Fixed minimum height for vertical */
-}
-
-.custom-scrollbar-vertical::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 148, 158, 0.8);
-}

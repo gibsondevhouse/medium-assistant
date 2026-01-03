@@ -26,6 +26,19 @@ declare global {
                 setMediumToken: (token: string) => Promise<{ success: boolean; error?: string }>;
                 hasMediumToken: () => Promise<boolean>;
                 clearMediumToken: () => Promise<{ success: boolean }>;
+                // Google Search
+                getGoogleSearchKey: () => Promise<string | null>;
+                setGoogleSearchKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+                hasGoogleSearchKey: () => Promise<boolean>;
+                clearGoogleSearchKey: () => Promise<{ success: boolean }>;
+                getGoogleSearchCx: () => Promise<string | null>;
+                setGoogleSearchCx: (cx: string) => Promise<{ success: boolean; error?: string }>;
+                hasGoogleSearchCx: () => Promise<boolean>;
+                clearGoogleSearchCx: () => Promise<{ success: boolean }>;
+            };
+            google: {
+                search: (query: string) => Promise<{ success: boolean; results?: any[]; error?: string }>;
+                books: (query: string) => Promise<{ success: boolean; results?: any[]; error?: string }>;
             };
             medium: {
                 publish: (title: string, content: string, tags: string[], publishStatus: string) => Promise<{ success: boolean; url?: string; id?: string; error?: string }>;

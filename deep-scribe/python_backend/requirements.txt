@@ -1,7 +1,9 @@
 fastapi
 uvicorn
 python-dotenv
-torch
 google-generativeai
 pyinstaller
 chromadb
+requests
+pytest
+pytest-asyncio

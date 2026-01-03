@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as net from 'net';
 const isDev = process.env.NODE_ENV === 'development';
 import { spawn, ChildProcess } from 'child_process';
 import * as dotenv from 'dotenv';
@@ -10,10 +11,26 @@ import { SettingsService } from './services/settings';
 import { RssService } from './services/rss';
 import { DraftService } from './services/drafts';
 import { ResearchService } from './services/research';
+import { logger } from './utils/logger';
 
 let pythonProcess: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let backendPort: string | null = null;
+
+async function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', reject);
+    server.listen(0, () => {
+      const address = server.address();
+      const port = typeof address === 'string' ? 0 : address?.port || 0;
+      server.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -38,49 +55,41 @@ function createWindow() {
   });
 }
 
-function startPythonBackend() {
+async function startPythonBackend() {
   let executablePath = '';
   let args: string[] = [];
+  
+  const port = await getFreePort();
+  backendPort = port.toString();
 
   if (isDev) {
     executablePath = 'python3';
-    args = ['-u', path.join(__dirname, '../python_backend/main.py')];
+    args = ['-u', path.join(__dirname, '../python_backend/main.py'), '--port', backendPort];
   } else {
     const bundledPath = path.join(process.resourcesPath, 'deep-scribe-backend');
     executablePath = bundledPath;
+    args = ['--port', backendPort];
   }
 
-  console.log(`[Main] Spawning Gemini backend: ${executablePath} ${args.join(' ')}`);
+  logger.info(`Spawning Gemini backend: ${executablePath} ${args.join(' ')}`);
 
   if (!isDev && !fs.existsSync(executablePath)) {
-    console.error(`[Main] Backend executable not found at: ${executablePath}`);
+    logger.error(`Backend executable not found at: ${executablePath}`);
     return;
   }
 
   pythonProcess = spawn(executablePath, args);
 
   pythonProcess.stdout?.on('data', (data) => {
-    console.log(`Python stdout: ${data}`);
-    const output = data.toString();
-    const match = output.match(/Starting Deep Scribe Gemini backend on port (\d+)/);
-    if (match) {
-      backendPort = match[1];
-      console.log(`Backend port detected (stdout): ${backendPort}`);
-    }
+    logger.logPython(data.toString());
   });
 
   pythonProcess.stderr?.on('data', (data) => {
-    console.error(`Python stderr: ${data}`);
-    const output = data.toString();
-    const match = output.match(/Uvicorn running on http:\/\/127.0.0.1:(\d+)/);
-    if (match && !backendPort) {
-      backendPort = match[1];
-      console.log(`Backend port detected (stderr): ${backendPort}`);
-    }
+    logger.error(`Python stderr: ${data}`);
   });
 
   pythonProcess.on('close', (code) => {
-    console.log(`Python process exited with code ${code}`);
+    logger.warn(`Python process exited with code ${code}`);
     pythonProcess = null;
   });
 }
@@ -169,6 +178,17 @@ ipcMain.handle('settings:clear-medium-token', async () => {
   return settingsService.clearMediumToken();
 });
 
+// Google Search Keys
+ipcMain.handle('settings:get-google-search-key', async () => { return settingsService.getGoogleSearchKey(); });
+ipcMain.handle('settings:set-google-search-key', async (_, key) => { return settingsService.setGoogleSearchKey(key); });
+ipcMain.handle('settings:has-google-search-key', async () => { return settingsService.hasGoogleSearchKey(); });
+ipcMain.handle('settings:clear-google-search-key', async () => { return settingsService.clearGoogleSearchKey(); });
+
+ipcMain.handle('settings:get-google-search-cx', async () => { return settingsService.getGoogleSearchCx(); });
+ipcMain.handle('settings:set-google-search-cx', async (_, cx) => { return settingsService.setGoogleSearchCx(cx); });
+ipcMain.handle('settings:has-google-search-cx', async () => { return settingsService.hasGoogleSearchCx(); });
+ipcMain.handle('settings:clear-google-search-cx', async () => { return settingsService.clearGoogleSearchCx(); });
+
 // Medium Publishing
 ipcMain.handle('medium:publish', async (_, title: string, content: string, tags: string[], publishStatus: string) => {
   try {
@@ -227,7 +247,7 @@ ipcMain.handle('medium:publish', async (_, title: string, content: string, tags:
       id: postData.data?.id
     };
   } catch (error: any) {
-    console.error('Medium publish error:', error);
+    logger.error('Medium publish error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -488,3 +508,75 @@ ipcMain.on('logger:log', (event, level, message, ...args) => {
 ipcMain.on('shell:open-external', (_, url: string) => {
   shell.openExternal(url);
 });
+
+
+// --- Google Tools ---
+ipcMain.handle('google:search', async (_, query: string) => {
+  try {
+    const port = backendPort;
+    if (!port) return { success: false, error: 'Backend not ready' };
+
+    // Get keys from secure storage
+    const apiKey = await settingsService.getGoogleSearchKey(); // Need to implement this in SettingsService
+    const cx = await settingsService.getGoogleSearchCx();     // Need to implement this in SettingsService
+
+    if (!apiKey || !cx) {
+      return { success: false, error: 'Google Search API Key or Engine ID (CX) not configured' };
+    }
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/tools/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        num_results: 5,
+        api_key: apiKey,
+        search_engine_id: cx
+      })
+    });
+
+    if (!response.ok) {
+      return { success: false, error: `Backend Error: ${response.statusText}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    logger.error(`Google Search Proxy Error: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('google:books', async (_, query: string) => {
+  try {
+    const port = backendPort;
+    if (!port) return { success: false, error: 'Backend not ready' };
+
+    // Reuse the Search API Key (Google Cloud Key)
+    const apiKey = await settingsService.getGoogleSearchKey();
+
+    if (!apiKey) {
+      return { success: false, error: 'Google API Key not configured' };
+    }
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/tools/books`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        max_results: 5,
+        api_key: apiKey
+      })
+    });
+
+    if (!response.ok) {
+      return { success: false, error: `Backend Error: ${response.statusText}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    logger.error(`Google Books Proxy Error: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- Settings (Gemini API Key) ---

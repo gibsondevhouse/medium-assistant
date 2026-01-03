@@ -1,290 +1,120 @@
-import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { DeepScribeLayout } from './components/DeepScribeLayout';
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { Editor } from './components/Editor/Editor';
-import { ChatPanel } from './components/Chat/ChatPanel';
-import { useDraftStore } from './store/draftStore';
+import { ResearchDashboard } from './components/Research/ResearchDashboard';
+import { SettingsDashboard } from './components/Settings/SettingsDashboard';
+import { KnowledgeBase } from './components/KnowledgeBase';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { getGeminiKey } from './services/settings-keys';
+import { LayoutShell } from './components/LayoutShell';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+type View = 'dashboard' | 'editor' | 'research' | 'settings' | 'knowledge';
 
 function App() {
-  const [backendStatus, setBackendStatus] = useState('Connecting...');
-
-  // Draft Store
-  const { drafts, loadDrafts, createNewDraft, selectDraft, activeDraft } = useDraftStore();
-
-  useEffect(() => {
-    loadDrafts();
-  }, []);
-
-  // Automatically switch to Editor when a draft is active
-  useEffect(() => {
-    if (activeDraft) {
-      setActiveView('Editor');
-    }
-  }, [activeDraft]);
-
-  const [activeView, setActiveView] = useState('Dashboard');
-  const [rightPanelMode, setRightPanelMode] = useState<'metadata' | 'chat'>('metadata');
+  const [activeView, setActiveView] = useState<View>('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [backendReady, setBackendReady] = useState(false);
+  const [hasKey, setHasKey] = useState(false);
 
   useEffect(() => {
-    async function checkConnection() {
+    const checkBackend = async () => {
       try {
-        const port = window.electronAPI ? await window.electronAPI.getApiPort() : null;
-        if (port) {
-          const response = await fetch(`http://127.0.0.1:${port}`);
-          if (response.ok) {
-            const data = await response.json();
-            setBackendStatus('Connected');
-            console.log("Backend message:", data.message);
-          } else {
-            setBackendStatus('Backend Error');
-          }
-        } else {
-          setBackendStatus("Port not found");
-        }
-      } catch (error) {
-        console.error('Failed to connect:', error);
-        setBackendStatus('Disconnected');
+        const health = await fetch('http://localhost:8000/');
+        if (health.ok) setBackendReady(true);
+      } catch (e) {
+        console.warn("Backend not ready yet...");
       }
-    }
+    };
 
-    checkConnection();
+    const init = async () => {
+      const key = await getGeminiKey();
+      if (key) setHasKey(true);
 
-    // Lazy Auth Check - redirect to settings if no Gemini key
-    if (window.electronAPI?.settings) {
-      window.electronAPI.settings.hasGeminiKey().then((hasKey) => {
-        console.log("Startup Auth Check:", hasKey ? "Gemini Key Present" : "No Key (Lazy Mode)");
-        if (!hasKey) {
-          setDashboardTab('settings');
-        }
-      });
-    } else {
-      console.warn("Electron API not available (App.tsx)");
-    }
+      // Initial check
+      await checkBackend();
+
+      // Poll for backend if not ready (retry 3 times)
+      if (!backendReady) {
+        let retries = 0;
+        const interval = setInterval(async () => {
+          retries++;
+          try {
+            const health = await fetch('http://localhost:8000/');
+            if (health.ok) {
+              setBackendReady(true);
+              clearInterval(interval);
+            }
+          } catch (e) { }
+
+          if (retries > 5) clearInterval(interval);
+        }, 1000);
+      }
+
+      setLoading(false);
+    };
+
+    init();
   }, []);
 
-  // Dashboard Tab State
-  const [dashboardTab, setDashboardTab] = useState<string>('home');
+  if (loading) {
+    return (
+      <LayoutShell>
+        <div className="h-full w-full flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+        </div>
+      </LayoutShell>
+    );
+  }
 
-  const handleCreateDraft = async () => {
-    await createNewDraft();
+  // Lazy Auth Redirect: If no key, force settings, but allow app to load
+  if (!hasKey && activeView !== 'settings') {
+    // Optional: You could force redirect here, or just show a banner
+  }
+
+  const renderContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <Dashboard
+          onNavigate={(view: string) => setActiveView(view as View)}
+          onCreateArticle={() => setActiveView('editor')}
+        />;
+      case 'editor':
+        return <Editor />;
+      case 'research':
+        return <ResearchDashboard />;
+      case 'settings':
+        return <SettingsDashboard />;
+      case 'knowledge':
+        return <KnowledgeBase />;
+      default:
+        return <Dashboard onNavigate={(view) => setActiveView(view as View)} />;
+    }
   };
-
-  const handleSelectDraft = async (id: string) => {
-    await selectDraft(id);
-  };
-
-  const Sidebar = (
-    <div className="w-full h-full bg-[#0d1117] flex flex-col overflow-hidden font-sans">
-      {/* 1. HEADER: Brand Identity */}
-      <div className="p-8 shrink-0">
-        <h1 className="text-2xl text-white font-bold tracking-tight leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>
-          Deep Scribe
-        </h1>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto min-h-0 px-8 pb-8 space-y-10">
-
-        {/* 2. SECTION A: HOME */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Home</h3>
-          <div className="flex flex-col space-y-2">
-
-            {/* Dashboard */}
-            <button
-              onClick={() => {
-                setActiveView('Dashboard');
-                setDashboardTab('home');
-              }}
-              className={cn(
-                "text-left text-sm text-[15px] font-medium transition-all duration-200",
-                activeView === 'Dashboard' && dashboardTab !== 'settings'
-                  ? "text-white translate-x-1"
-                  : "text-[#8b949e] hover:text-white hover:translate-x-1"
-              )}
-            >
-              Dashboard
-            </button>
-
-            {/* Settings */}
-            <button
-              onClick={() => {
-                setActiveView('Dashboard');
-                setDashboardTab('settings');
-              }}
-              className={cn(
-                "text-left text-sm text-[15px] font-medium transition-all duration-200",
-                activeView === 'Dashboard' && dashboardTab === 'settings'
-                  ? "text-white translate-x-1"
-                  : "text-[#8b949e] hover:text-white hover:translate-x-1"
-              )}
-            >
-              Settings
-            </button>
-
-          </div>
-        </div>
-
-        {/* 3. SECTION B: RECENT ARTICLES */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between group">
-            <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Recent Articles</h3>
-            <button
-              onClick={handleCreateDraft}
-              className="text-[#8b949e] hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-              title="New Draft"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-          <div className="flex flex-col space-y-3">
-            {drafts.length === 0 ? (
-              <div className="text-sm text-gray-600 italic">No drafts yet</div>
-            ) : (
-              drafts.map((draft) => (
-                <div key={draft.id} className="flex flex-col">
-                  <button
-                    onClick={() => handleSelectDraft(draft.id)}
-                    className={cn(
-                      "text-left text-sm transition-all duration-200 truncate",
-                      activeDraft?.id === draft.id && activeView === 'Editor'
-                        ? "text-white translate-x-1"
-                        : "text-[#8b949e] hover:text-white hover:translate-x-1"
-                    )}
-                  >
-                    {draft.title || 'Untitled'}
-                  </button>
-                  {draft.tags && draft.tags.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {draft.tags.map((tag) => (
-                        <span key={tag} className="text-[10px] text-gray-600 bg-gray-800 px-1 rounded">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-      </nav>
-
-      {/* 4. BOTTOM: CHAT */}
-      <div className="p-8 shrink-0 bg-[#0d1117] border-t border-[#30363d]/30">
-        <div className="space-y-4">
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Messages</h3>
-          <button
-            className="block w-full text-left group"
-            onClick={() => setRightPanelMode(rightPanelMode === 'chat' ? 'metadata' : 'chat')}
-          >
-            <div className={`text-sm font-bold group-hover:translate-x-1 transition-transform duration-200 ${rightPanelMode === 'chat' ? 'text-blue-400' : 'text-white'}`}>
-              Editor Bot
-            </div>
-            <div className="text-xs text-[#8b949e] mt-1 truncate group-hover:text-gray-300 transition-colors">
-              Click to toggle chat...
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const Metadata = (
-    <div className="w-full h-full bg-[#0a0a0a] border-l border-white/5 flex flex-col p-6 overflow-y-auto">
-
-      {/* Module A: Trending Now */}
-      <div className="mb-10">
-        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-6">
-          Trending Now
-        </h2>
-        <div className="space-y-6">
-          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
-            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>01</span>
-            <div>
-              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">The Death of Corpocore</h4>
-              <span className="text-xs text-gray-500">Elena Fisher</span>
-            </div>
-          </div>
-          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
-            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>02</span>
-            <div>
-              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">Rust in 2025</h4>
-              <span className="text-xs text-gray-500">Marcus Chen</span>
-            </div>
-          </div>
-          <div className="flex items-baseline gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
-            <span className="text-3xl text-white/20 font-serif leading-none group-hover:text-white/40 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>03</span>
-            <div>
-              <h4 className="text-[0.95rem] font-medium text-gray-200 mb-1 leading-tight group-hover:text-white transition-colors">AI & Typography</h4>
-              <span className="text-xs text-gray-500">Sarah Connor</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Module B: Reading List */}
-      <div className="mb-10">
-        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-4">
-          Reading List
-        </h2>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
-            <div className="w-10 h-10 rounded-md bg-[#1e1e1e] border border-white/5 overflow-hidden shrink-0">
-              <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt="Thumb" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">Design Systems Vol. 2</h4>
-              <span className="text-[11px] text-gray-500">4 min read</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
-            <div className="w-10 h-10 rounded-md bg-[#1e1e1e] border border-white/5 overflow-hidden shrink-0">
-              <img src="https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=100&q=80" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt="Thumb" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">Neo-Brutalism UI</h4>
-              <span className="text-[11px] text-gray-500">12 min read</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Module C: Explore */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-[1.5px] text-white/40 mb-4">
-          Explore
-        </h2>
-        <div className="flex flex-col gap-1">
-          {['Generative Art', 'Slow Software', 'Typography', 'Web Assembly', 'Privacy'].map((topic) => (
-            <a key={topic} href="#" className="block text-sm text-gray-500 hover:text-white hover:translate-x-1 transition-all py-1">
-              {topic}
-            </a>
-          ))}
-          <a href="#" className="block text-sm text-blue-400/80 hover:text-blue-400 hover:translate-x-1 transition-all py-1 mt-2">
-            View all topics →
-          </a>
-        </div>
-      </div>
-
-    </div>
-  );
 
   return (
-    <>
-      <DeepScribeLayout
-        sidebar={Sidebar}
-        editor={activeView === 'Editor' ? <Editor /> : <Dashboard activeTab={dashboardTab} onTabChange={setDashboardTab} />}
-        metadata={rightPanelMode === 'chat' ? <ChatPanel /> : Metadata}
-      />
-    </>
+    <LayoutShell>
+      <div className="flex h-screen overflow-hidden bg-surface-100 text-text-primary">
+        <Sidebar
+          activeView={activeView}
+          onChangeView={setActiveView}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        />
+
+        <main className={`flex-1 overflow-hidden transition-all duration-300 relative ${isSidebarOpen ? 'ml-0' : 'ml-0'}`}>
+          {!backendReady && (
+            <div className="bg-brand-secondary/20 text-brand-secondary px-4 py-2 text-xs font-mono flex items-center gap-2 justify-center border-b border-brand-secondary/30">
+              <AlertCircle className="w-3 h-3" />
+              Backend Connection Pending... AI features may be unavailable.
+            </div>
+          )}
+
+          {renderContent()}
+        </main>
+      </div>
+    </LayoutShell>
   );
 }
 

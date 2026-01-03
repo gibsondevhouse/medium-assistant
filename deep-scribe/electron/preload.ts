@@ -22,6 +22,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setMediumToken: (token: string) => ipcRenderer.invoke('settings:set-medium-token', token),
     hasMediumToken: () => ipcRenderer.invoke('settings:has-medium-token'),
     clearMediumToken: () => ipcRenderer.invoke('settings:clear-medium-token'),
+    // Google Search Keys
+    getGoogleSearchKey: () => ipcRenderer.invoke('settings:get-google-search-key'),
+    setGoogleSearchKey: (key: string) => ipcRenderer.invoke('settings:set-google-search-key', key),
+    hasGoogleSearchKey: () => ipcRenderer.invoke('settings:has-google-search-key'),
+    clearGoogleSearchKey: () => ipcRenderer.invoke('settings:clear-google-search-key'),
+    getGoogleSearchCx: () => ipcRenderer.invoke('settings:get-google-search-cx'),
+    setGoogleSearchCx: (cx: string) => ipcRenderer.invoke('settings:set-google-search-cx', cx),
+    hasGoogleSearchCx: () => ipcRenderer.invoke('settings:has-google-search-cx'),
+    clearGoogleSearchCx: () => ipcRenderer.invoke('settings:clear-google-search-cx'),
+  },
+  google: {
+    search: (query: string) => ipcRenderer.invoke('google:search', query),
+    books: (query: string) => ipcRenderer.invoke('google:books', query)
   },
   medium: {
     publish: (title: string, content: string, tags: string[], publishStatus: string) =>

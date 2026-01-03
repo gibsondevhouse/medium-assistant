@@ -82,9 +82,45 @@ export const generateTopicMap = async (topic: string): Promise<{ nodes: Node<Res
 // PASS 2: Deep Dive (Single Subtopic)
 export const researchSubtopic = async (subtopic: string, mainTopic: string): Promise<string> => {
     const model = getModel();
+    let webContext = "";
+    let useSearch = false;
+
+    // 1. Check if Search is Enabled
+    try {
+        const hasKey = await window.electronAPI.settings.hasGoogleSearchKey();
+        const hasCx = await window.electronAPI.settings.hasGoogleSearchCx();
+        useSearch = hasKey && hasCx;
+    } catch (e) {
+        console.warn("Failed to check search settings", e);
+    }
+
+    // 2. Perform Live Search (if enabled)
+    if (useSearch) {
+        try {
+            const query = `${mainTopic} ${subtopic} facts news`;
+            console.log(`[Research] Searching Google for: ${query}`);
+            const searchResult = await window.electronAPI.google.search(query);
+
+            if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
+                webContext = `
+## LIVE WEB CONTEXT (Use these facts to ground your response):
+${searchResult.results.map((r: any) => `- [${r.source}] ${r.title}: ${r.snippet}`).join('\n')}
+`;
+            }
+        } catch (e) {
+            console.error("Google Search failed during research:", e);
+            // Continue without web context
+        }
+    }
 
     const prompt = `
     Conduct deep research on the subtopic "${subtopic}" within the context of "${mainTopic}".
+    
+    ${webContext ? `
+    IMPORTANT: I have provided live search results below. Use these specific facts, figures, and sources to ground your answer.
+    ${webContext}
+    ` : ''}
+
     Provide a detailed summary of key facts, figures, recent developments, and controversies.
     Format the output as a concise markdown section.
     Focus on information density.
