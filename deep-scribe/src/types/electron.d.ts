@@ -7,10 +7,6 @@ declare global {
             logger: {
                 log: (level: string, message: string, ...args: any[]) => void;
             };
-            gemini: {
-                generate: (prompt: string) => Promise<{ success: boolean; text?: string; error?: string }>;
-            };
-            onGeminiLog: (callback: (message: string) => void) => () => void;
             rss: {
                 fetch: (url: string) => Promise<{ success: boolean; feed?: any; error?: string }>;
             };
@@ -21,10 +17,23 @@ declare global {
                 setGNewsKey: (key: string) => Promise<{ success: boolean; error?: string }>;
                 getRssUrl: () => Promise<string>;
                 setRssUrl: (url: string) => Promise<void>;
+                getAnthropicKey: () => Promise<string | null>;
+                setAnthropicKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+                getDeepSeekKey: () => Promise<string | null>;
+                setDeepSeekKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+                getPerplexityKey: () => Promise<string | null>;
+                setPerplexityKey: (key: string) => Promise<{ success: boolean; error?: string }>;
                 testGeminiKey: (key?: string) => Promise<{ success: boolean; error?: string }>;
                 testGNewsKey: (key?: string) => Promise<{ success: boolean; error?: string }>;
                 clearAllKeys: () => Promise<{ success: boolean }>;
                 bothKeysSet: () => Promise<boolean>;
+            };
+            drafts: {
+                list: () => Promise<{ id: string; title: string; lastModified: number; preview: string; filepath: string }[]>;
+                read: (id: string) => Promise<{ id: string; content: string } | null>;
+                save: (id: string, content: string) => Promise<boolean>;
+                create: (title: string) => Promise<{ id: string; title: string; lastModified: number; preview: string; filepath: string } | null>;
+                delete: (id: string) => Promise<boolean>;
             };
         };
     }

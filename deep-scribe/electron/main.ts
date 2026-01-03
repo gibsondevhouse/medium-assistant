@@ -6,7 +6,6 @@ import { spawn, ChildProcess } from 'child_process';
 import * as dotenv from 'dotenv';
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-import { GeminiSDKService } from './services/gemini';
 import { SettingsService } from './services/settings';
 import { RssService } from './services/rss';
 import { DraftService } from './services/drafts';
@@ -126,18 +125,6 @@ ipcMain.handle('get-api-port', async () => {
   }
 
   return backendPort;
-});
-
-// --- Gemini SDK Integration ---
-const geminiService = new GeminiSDKService();
-
-ipcMain.handle('gemini:generate', async (_, prompt) => {
-  try {
-    const text = await geminiService.generateContent(prompt);
-    return { success: true, text };
-  } catch (e: any) {
-    return { success: false, error: e.message };
-  }
 });
 
 // --- Settings / API Keys ---

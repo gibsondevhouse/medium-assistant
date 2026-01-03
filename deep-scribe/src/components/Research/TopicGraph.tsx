@@ -18,11 +18,11 @@ export function TopicGraph() {
     const {
         nodes, edges, onNodesChange, onEdgesChange,
         status, setStatus, updateNodeStatus, query,
-        apiKey, setFinalReport, setError
+        setFinalReport, setError
     } = useResearchStore();
 
     const startDeepResearch = async () => {
-        if (!apiKey) return;
+        // apiKey not needed for centralized router
         setStatus('researching');
 
         // 1. Trigger research for all subnodes in parallel
@@ -34,7 +34,7 @@ export function TopicGraph() {
         try {
             const researchPromises = subnodes.map(async (node) => {
                 try {
-                    const findings = await researchSubtopic(apiKey, node.data.label, query);
+                    const findings = await researchSubtopic('ignored-key', node.data.label, query);
                     updateNodeStatus(node.id, 'done', findings);
                     return { topic: node.data.label, content: findings };
                 } catch (e) {
@@ -49,7 +49,7 @@ export function TopicGraph() {
             // 2. Synthesize
             if (results.length > 0) {
                 setStatus('synthesizing');
-                const report = await synthesizeReport(apiKey, query, results);
+                const report = await synthesizeReport('ignored-key', query, results);
                 setFinalReport(report);
                 setStatus('complete');
             } else {
