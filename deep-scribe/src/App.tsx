@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from './components/Sidebar';
+import { BreadcrumbNav } from './components/Navigation/BreadcrumbNav';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { Editor } from './components/Editor/Editor';
 import { ResearchDashboard } from './components/Research/ResearchDashboard';
@@ -13,7 +13,6 @@ type View = 'dashboard' | 'editor' | 'research' | 'settings' | 'knowledge';
 
 function App() {
   const [activeView, setActiveView] = useState<View>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [backendReady, setBackendReady] = useState(false);
   const [hasKey, setHasKey] = useState(false);
@@ -95,15 +94,13 @@ function App() {
 
   return (
     <LayoutShell>
-      <div className="flex h-screen overflow-hidden bg-surface-100 text-text-primary">
-        <Sidebar
+      <div className="flex flex-col h-screen overflow-hidden bg-surface-100 text-text-primary">
+        <BreadcrumbNav
           activeView={activeView}
-          onChangeView={setActiveView}
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onNavigate={setActiveView}
         />
 
-        <main className={`flex-1 overflow-hidden transition-all duration-300 relative ${isSidebarOpen ? 'ml-0' : 'ml-0'}`}>
+        <main className="flex-1 overflow-hidden relative">
           {!backendReady && (
             <div className="bg-brand-secondary/20 text-brand-secondary px-4 py-2 text-xs font-mono flex items-center gap-2 justify-center border-b border-brand-secondary/30">
               <AlertCircle className="w-3 h-3" />

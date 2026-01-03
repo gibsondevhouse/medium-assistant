@@ -58,7 +58,7 @@ function createWindow() {
 async function startPythonBackend() {
   let executablePath = '';
   let args: string[] = [];
-  
+
   const port = await getFreePort();
   backendPort = port.toString();
 
@@ -499,10 +499,8 @@ ipcMain.handle('kb:chat', async (_, message: string, nContext?: number) => {
 });
 
 // --- Logger ---
-import { logger } from './utils/logger';
-
 ipcMain.on('logger:log', (event, level, message, ...args) => {
-  logger.log(level, message, ...args);
+  logger.log(level, 'renderer', message, args);
 });
 
 ipcMain.on('shell:open-external', (_, url: string) => {

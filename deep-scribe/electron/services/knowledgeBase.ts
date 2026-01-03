@@ -75,7 +75,7 @@ export class KnowledgeBaseService {
       throw new Error(`API error: ${error}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   async addDocument(
