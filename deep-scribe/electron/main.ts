@@ -158,6 +158,30 @@ ipcMain.handle('settings:set-gnews-key', async (_, key: string) => {
   return settingsService.setGNewsKey(key);
 });
 
+ipcMain.handle('settings:get-anthropic-key', async () => {
+  return settingsService.getAnthropicKey();
+});
+
+ipcMain.handle('settings:set-anthropic-key', async (_, key: string) => {
+  return settingsService.setAnthropicKey(key);
+});
+
+ipcMain.handle('settings:get-deepseek-key', async () => {
+  return settingsService.getDeepSeekKey();
+});
+
+ipcMain.handle('settings:set-deepseek-key', async (_, key: string) => {
+  return settingsService.setDeepSeekKey(key);
+});
+
+ipcMain.handle('settings:get-perplexity-key', async () => {
+  return settingsService.getPerplexityKey();
+});
+
+ipcMain.handle('settings:set-perplexity-key', async (_, key: string) => {
+  return settingsService.setPerplexityKey(key);
+});
+
 ipcMain.handle('settings:test-gemini-key', async (_, key?: string) => {
   return settingsService.testGeminiKey(key);
 });

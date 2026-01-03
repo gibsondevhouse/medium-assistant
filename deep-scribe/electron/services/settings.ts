@@ -13,12 +13,18 @@ export class SettingsService {
     private configDir: string;
     private geminiKeyPath: string;
     private gnewsKeyPath: string;
+    private anthropicKeyPath: string;
+    private deepseekKeyPath: string;
+    private perplexityKeyPath: string;
     private store: any;
 
     constructor() {
         this.configDir = path.join(app.getPath('userData'), 'keys');
         this.geminiKeyPath = path.join(this.configDir, 'gemini');
         this.gnewsKeyPath = path.join(this.configDir, 'gnews');
+        this.anthropicKeyPath = path.join(this.configDir, 'anthropic');
+        this.deepseekKeyPath = path.join(this.configDir, 'deepseek');
+        this.perplexityKeyPath = path.join(this.configDir, 'perplexity');
 
         // Ensure config directory exists
         if (!fs.existsSync(this.configDir)) {
@@ -123,6 +129,87 @@ export class SettingsService {
                 return { success: false, error: 'Secure storage not available' };
             }
             return { success: true };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    // ANTHROPIC KEY MANAGEMENT
+    getAnthropicKey(): string | null {
+        try {
+            if (!fs.existsSync(this.anthropicKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                return safeStorage.decryptString(fs.readFileSync(this.anthropicKeyPath));
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read Anthropic key:', e);
+            return null;
+        }
+    }
+
+    setAnthropicKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.anthropicKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Secure storage unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    // DEEPSEEK KEY MANAGEMENT
+    getDeepSeekKey(): string | null {
+        try {
+            if (!fs.existsSync(this.deepseekKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                return safeStorage.decryptString(fs.readFileSync(this.deepseekKeyPath));
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read DeepSeek key:', e);
+            return null;
+        }
+    }
+
+    setDeepSeekKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.deepseekKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Secure storage unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    // PERPLEXITY KEY MANAGEMENT
+    getPerplexityKey(): string | null {
+        try {
+            if (!fs.existsSync(this.perplexityKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                return safeStorage.decryptString(fs.readFileSync(this.perplexityKeyPath));
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read Perplexity key:', e);
+            return null;
+        }
+    }
+
+    setPerplexityKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.perplexityKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Secure storage unavailable' };
         } catch (e: any) {
             return { success: false, error: e.message };
         }

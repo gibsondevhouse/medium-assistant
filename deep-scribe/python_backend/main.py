@@ -1,9 +1,10 @@
-import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import socket
 from dotenv import load_dotenv
 import os
+from pydantic import BaseModel
+from router import UnifiedRouter
 
 load_dotenv()
 
@@ -32,6 +33,25 @@ import sys
 @app.get("/")
 def read_root():
     return {"message": "Hello from Deep Scribe Backend"}
+
+# --- ROUTER INTEGRATION ---
+router = UnifiedRouter()
+
+class GenerateRequest(BaseModel):
+    provider: str
+    model: str
+    prompt: str
+    api_keys: dict
+
+@app.post("/api/generate")
+async def generate_content(request: GenerateRequest):
+    result = router.route_request(
+        provider=request.provider,
+        model=request.model,
+        prompt=request.prompt,
+        api_keys=request.api_keys
+    )
+    return result
 
 def get_hardware_config():
     config = {

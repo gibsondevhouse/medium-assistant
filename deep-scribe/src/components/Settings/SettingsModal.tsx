@@ -17,6 +17,9 @@ import { ApiKeyInput } from './ApiKeyInput';
 import {
     getGeminiKey, setGeminiKey,
     getGNewsKey, setGNewsKey,
+    getAnthropicKey, setAnthropicKey,
+    getDeepSeekKey, setDeepSeekKey,
+    getPerplexityKey, setPerplexityKey,
     getRssUrl, setRssUrl,
     maskKey, clearAllKeys,
     testGeminiKey, testGNewsKey
@@ -36,6 +39,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const [activeTab, setActiveTab] = useState<TabType>('api');
     const [geminiKey, setGeminiKeyDisplay] = useState<string | undefined>();
     const [gnewsKey, setGnewsKeyDisplay] = useState<string | undefined>();
+    const [anthropicKey, setAnthropicKeyDisplay] = useState<string | undefined>();
+    const [deepseekKey, setDeepseekKeyDisplay] = useState<string | undefined>();
+    const [perplexityKey, setPerplexityKeyDisplay] = useState<string | undefined>();
     const [rssUrl, setRssUrlDisplay] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [testResult, setTestResult] = useState<{ key: string; success: boolean; message: string } | null>(null);
@@ -65,6 +71,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
     const loadKeys = async () => {
         const gKey = await getGeminiKey();
         const nKey = await getGNewsKey();
+        const aKey = await getAnthropicKey();
+        const dKey = await getDeepSeekKey();
+        const pKey = await getPerplexityKey();
         const rss = await getRssUrl();
 
         if (gKey) setGeminiKeyDisplay(await maskKey(gKey));
@@ -72,6 +81,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
         if (nKey) setGnewsKeyDisplay(await maskKey(nKey));
         else setGnewsKeyDisplay(undefined);
+
+        if (aKey) setAnthropicKeyDisplay(await maskKey(aKey));
+        else setAnthropicKeyDisplay(undefined);
+
+        if (dKey) setDeepseekKeyDisplay(await maskKey(dKey));
+        else setDeepseekKeyDisplay(undefined);
+
+        if (pKey) setPerplexityKeyDisplay(await maskKey(pKey));
+        else setPerplexityKeyDisplay(undefined);
 
         if (rss) setRssUrlDisplay(rss);
     };
@@ -104,6 +122,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             setLoading(false);
         }
     };
+
+    const handleAnthropicSave = async (key: string) => {
+        setLoading(true);
+        try {
+            await setAnthropicKey(key);
+            await loadKeys();
+            if (onKeysUpdated) onKeysUpdated();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeepSeekSave = async (key: string) => {
+        setLoading(true);
+        try {
+            await setDeepSeekKey(key);
+            await loadKeys();
+            if (onKeysUpdated) onKeysUpdated();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePerplexitySave = async (key: string) => {
+        setLoading(true);
+        try {
+            await setPerplexityKey(key);
+            await loadKeys();
+            if (onKeysUpdated) onKeysUpdated();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
 
     const handleRssSave = async (url: string) => {
         setLoading(true);
@@ -231,8 +284,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                             className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         >
                                             <option value="gemini">Google Gemini</option>
-                                            <option value="openai">OpenAI (Coming Soon)</option>
-                                            <option value="anthropic">Anthropic (Coming Soon)</option>
+                                            <option value="anthropic">Anthropic Claude</option>
+                                            <option value="deepseek">DeepSeek</option>
+                                            <option value="perplexity">Perplexity</option>
                                         </select>
                                         <p className="mt-1 text-xs text-[#8b949e]">Select which AI service to use for research and writing.</p>
                                     </div>
@@ -256,6 +310,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                                 Test Gemini Connection
                                             </button>
                                         )}
+                                    </div>
+
+                                    <div>
+                                        <ApiKeyInput
+                                            label="Anthropic API Key"
+                                            placeholder="sk-ant..."
+                                            currentValue={anthropicKey}
+                                            getKeyUrl="https://console.anthropic.com/"
+                                            onSave={handleAnthropicSave}
+                                            isLoading={loading}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <ApiKeyInput
+                                            label="DeepSeek API Key"
+                                            placeholder="sk-..."
+                                            currentValue={deepseekKey}
+                                            getKeyUrl="https://platform.deepseek.com/"
+                                            onSave={handleDeepSeekSave}
+                                            isLoading={loading}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <ApiKeyInput
+                                            label="Perplexity API Key"
+                                            placeholder="pplx-..."
+                                            currentValue={perplexityKey}
+                                            getKeyUrl="https://www.perplexity.ai/settings/api"
+                                            onSave={handlePerplexitySave}
+                                            isLoading={loading}
+                                        />
                                     </div>
 
                                     <div>

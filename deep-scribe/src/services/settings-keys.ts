@@ -58,6 +58,33 @@ export async function testGNewsKey(key?: string): Promise<boolean> {
     return true;
 }
 
+export async function getAnthropicKey(): Promise<string | null> {
+    return await window.electronAPI.settings.getAnthropicKey();
+}
+
+export async function setAnthropicKey(key: string): Promise<void> {
+    const result = await window.electronAPI.settings.setAnthropicKey(key);
+    if (!result.success) throw new Error(result.error || 'Failed to save Anthropic key');
+}
+
+export async function getDeepSeekKey(): Promise<string | null> {
+    return await window.electronAPI.settings.getDeepSeekKey();
+}
+
+export async function setDeepSeekKey(key: string): Promise<void> {
+    const result = await window.electronAPI.settings.setDeepSeekKey(key);
+    if (!result.success) throw new Error(result.error || 'Failed to save DeepSeek key');
+}
+
+export async function getPerplexityKey(): Promise<string | null> {
+    return await window.electronAPI.settings.getPerplexityKey();
+}
+
+export async function setPerplexityKey(key: string): Promise<void> {
+    const result = await window.electronAPI.settings.setPerplexityKey(key);
+    if (!result.success) throw new Error(result.error || 'Failed to save Perplexity key');
+}
+
 export async function maskKey(key: string): Promise<string> {
     if (!key || key.length < 12) return '•••••••••••••';
     return `${key.slice(0, 4)}...${key.slice(-8)}`;

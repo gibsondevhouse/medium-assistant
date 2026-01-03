@@ -1,11 +1,30 @@
 
 import { Node, Edge } from 'reactflow';
 import { ResearchNodeData } from '../types/research';
+import { aiRouter } from './ai-router';
+
+// Helper to get current settings
+const getSettings = () => {
+    const provider = localStorage.getItem('activeProvider') || 'gemini';
+    let model = 'gemini-1.5-pro'; // Default
+    try {
+        const stored = localStorage.getItem('deep-scribe-settings');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.research && parsed.research.model) {
+                model = parsed.research.model;
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to parse settings", e);
+    }
+    return { provider, model };
+};
 
 // PASS 1: Generate Topic Map
 export const generateTopicMap = async (apiKey: string, topic: string): Promise<{ nodes: Node<ResearchNodeData>[], edges: Edge[] }> => {
-    // Note: apiKey is now managed by the backend CLI, but keeping the signature for compatibility if needed, 
-    // or we can ignore it. The backend uses the logged-in user's credentials.
+    // apiKey argument is ignored in favor of backend router keys
+    const { provider, model } = getSettings();
 
     const prompt = `
     You are a research planning assistant.
@@ -21,13 +40,13 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
     Do not add markdown formatting like \`\`\`json. Just the raw JSON string.
   `;
 
-    const result = await window.electronAPI.gemini.generate(prompt);
+    const result = await aiRouter.generateContent(prompt, provider, model);
 
-    if (!result.success || !result.text) {
-        throw new Error(result.error || "Failed to generate content via CLI");
+    if (!result.success || !result.content) {
+        throw new Error(result.error || "Failed to generate content via Router");
     }
 
-    const text = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const text = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
 
     try {
         const data = JSON.parse(text);
@@ -67,6 +86,8 @@ export const generateTopicMap = async (apiKey: string, topic: string): Promise<{
 
 // PASS 2: Deep Dive (Single Subtopic)
 export const researchSubtopic = async (apiKey: string, subtopic: string, mainTopic: string): Promise<string> => {
+    const { provider, model } = getSettings();
+
     const prompt = `
     Conduct deep research on the subtopic "${subtopic}" within the context of "${mainTopic}".
     Provide a detailed summary of key facts, figures, recent developments, and controversies.
@@ -74,15 +95,17 @@ export const researchSubtopic = async (apiKey: string, subtopic: string, mainTop
     Focus on information density.
   `;
 
-    const result = await window.electronAPI.gemini.generate(prompt);
-    if (!result.success || !result.text) {
-        throw new Error(result.error || "Failed to generate content via CLI");
+    const result = await aiRouter.generateContent(prompt, provider, model);
+    if (!result.success || !result.content) {
+        throw new Error(result.error || "Failed to generate content via Router");
     }
-    return result.text;
+    return result.content;
 };
 
 // PASS 3: Synthesis
 export const synthesizeReport = async (apiKey: string, topic: string, findings: { topic: string, content: string }[]): Promise<string> => {
+    const { provider, model } = getSettings();
+
     const findingsText = findings.map(f => `## ${f.topic}\n${f.content}`).join('\n\n');
 
     const prompt = `
@@ -100,9 +123,10 @@ export const synthesizeReport = async (apiKey: string, topic: string, findings: 
     ${findingsText}
   `;
 
-    const result = await window.electronAPI.gemini.generate(prompt);
-    if (!result.success || !result.text) {
-        throw new Error(result.error || "Failed to generate content via CLI");
+    const result = await aiRouter.generateContent(prompt, provider, model);
+    if (!result.success || !result.content) {
+        throw new Error(result.error || "Failed to generate content via Router");
     }
-    return result.text;
+    return result.content;
 };
+
