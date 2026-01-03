@@ -41,31 +41,31 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavig
       label: 'Home',
       component: function HomeTab({ navigateToTab }) {
         return (
-          <div className="w-full h-full bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-8">
+          <div className="w-full h-full bg-surface-100 text-text-primary flex flex-col items-center justify-center p-8">
             <div className="max-w-2xl text-center space-y-6">
-              <h1 className="text-5xl font-bold tracking-tight" style={{ fontFamily: '"Playfair Display", serif' }}>
+              <h1 className="text-5xl font-bold tracking-tight font-serif">
                 Welcome to Deep Scribe
               </h1>
-              <p className="text-lg text-gray-400 leading-relaxed">
+              <p className="text-lg text-text-secondary leading-relaxed">
                 Deep Scribe is your all-in-one platform for research, writing, and publishing. Start by exploring the news feed, reading curated articles, conducting research, or diving into a writing project.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-blue-500/30 transition-colors text-left">
-                  <h3 className="text-lg font-semibold text-white mb-2">📰 News Feed</h3>
-                  <p className="text-sm text-gray-400">Stay updated with the latest articles from your favorite topics.</p>
+                <div className="p-6 bg-surface-200 rounded-lg border border-white/5 hover:border-brand-primary/30 transition-colors text-left">
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">📰 News Feed</h3>
+                  <p className="text-sm text-text-muted">Stay updated with the latest articles from your favorite topics.</p>
                 </div>
-                <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-blue-500/30 transition-colors text-left">
-                  <h3 className="text-lg font-semibold text-white mb-2">🔍 Research</h3>
-                  <p className="text-sm text-gray-400">Deep dive into topics and synthesize comprehensive reports using AI.</p>
+                <div className="p-6 bg-surface-200 rounded-lg border border-white/5 hover:border-brand-primary/30 transition-colors text-left">
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">🔍 Research</h3>
+                  <p className="text-sm text-text-muted">Deep dive into topics and synthesize comprehensive reports using AI.</p>
                 </div>
-                <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-purple-500/30 transition-colors text-left">
-                  <h3 className="text-lg font-semibold text-white mb-2">💬 Chat with Notes</h3>
-                  <p className="text-sm text-gray-400">Ask questions about your research notes using RAG-powered AI.</p>
+                <div className="p-6 bg-surface-200 rounded-lg border border-white/5 hover:border-brand-secondary/30 transition-colors text-left">
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">💬 Chat with Notes</h3>
+                  <p className="text-sm text-text-muted">Ask questions about your research notes using RAG-powered AI.</p>
                 </div>
               </div>
               <button
                 onClick={() => navigateToTab?.('settings')}
-                className="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                className="mt-8 px-6 py-3 bg-brand-primary hover:bg-brand-accent text-white rounded-lg font-medium transition-colors"
               >
                 Configure API Keys
               </button>
@@ -126,9 +126,9 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavig
   };
 
   return (
-    <div className="w-full h-full bg-[#0a0a0a] flex flex-col">
+    <div className="w-full h-full bg-surface-100 flex flex-col">
       {/* Tab Bar */}
-      <div className="flex items-center gap-1 px-4 py-3 bg-[#0d1117] border-b border-[#30363d] overflow-x-auto">
+      <div className="flex items-center gap-1 px-4 py-3 bg-surface-200 border-b border-white/5 overflow-x-auto">
         {tabs.map((tab) => (
           <div
             key={tab.id}
@@ -143,8 +143,8 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavig
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all whitespace-nowrap border-b-2 relative cursor-pointer select-none",
               activeTabId === tab.id
-                ? "text-white bg-[#161b22] border-b-blue-500"
-                : "text-[#8b949e] bg-[#0d1117] border-b-transparent hover:text-white hover:bg-[#161b22]/50"
+                ? "text-text-primary bg-surface-300 border-b-brand-primary"
+                : "text-text-secondary bg-transparent border-b-transparent hover:text-text-primary hover:bg-surface-300/50"
             )}
           >
             {tab.label}
@@ -154,7 +154,7 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavig
                   e.stopPropagation();
                   closeTab(tab.id);
                 }}
-                className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+                className="ml-1 p-1 hover:bg-white/10 rounded transition-colors"
                 title="Close tab"
               >
                 <X className="w-4 h-4" />
@@ -165,13 +165,13 @@ export function Dashboard({ activeTab: controlledActiveTab, onTabChange, onNavig
 
         {/* Add Tab Button */}
         <div className="ml-auto flex items-center gap-2">
-          <div className="h-6 border-l border-[#30363d]"></div>
+          <div className="h-6 border-l border-white/5"></div>
           <button
             onClick={() => {
               // Show dropdown with available tabs to add
               console.log('Show add tab menu');
             }}
-            className="p-2 text-[#8b949e] hover:text-white hover:bg-[#30363d]/30 rounded-lg transition-colors"
+            className="p-2 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
             title="Add new tab"
           >
             <Plus className="w-4 h-4" />

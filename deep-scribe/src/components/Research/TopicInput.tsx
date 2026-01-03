@@ -62,25 +62,25 @@ export function TopicInput({ onOpenSettings }: { onOpenSettings?: () => void }) 
                     value={localQuery}
                     onChange={(e) => setLocalQuery(e.target.value)}
                     placeholder="e.g., The Impact of WebAssembly on Cloud Computing..."
-                    className="w-full bg-[#1e1e1e] border border-white/10 rounded-xl px-6 py-5 pr-16 text-lg text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all shadow-2xl"
+                    className="w-full bg-surface-200 border border-white/10 rounded-xl px-6 py-5 pr-16 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/50 transition-all shadow-2xl"
                     disabled={isLoading}
                 />
                 <button
                     type="submit"
                     disabled={isLoading || !localQuery.trim()}
-                    className="absolute right-3 top-3 bottom-3 aspect-square flex items-center justify-center bg-white text-black rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                    className="absolute right-3 top-3 bottom-3 aspect-square flex items-center justify-center bg-brand-primary text-surface-100 rounded-lg hover:bg-brand-accent disabled:opacity-50 disabled:hover:bg-brand-primary transition-colors"
                 >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
                 </button>
             </form>
 
-            <div className="mt-8 flex gap-4 text-sm text-gray-500">
+            <div className="mt-8 flex gap-4 text-sm text-text-muted">
                 <span>Try:</span>
                 {['Quantum Computing', 'Brutalist Web Design', 'History of Coffee'].map((s) => (
                     <button
                         key={s}
                         onClick={() => setLocalQuery(s)}
-                        className="hover:text-white transition-colors underline decoration-dotted underline-offset-4"
+                        className="hover:text-text-primary transition-colors underline decoration-dotted underline-offset-4"
                     >
                         {s}
                     </button>
@@ -90,7 +90,7 @@ export function TopicInput({ onOpenSettings }: { onOpenSettings?: () => void }) 
             <div className="mt-12">
                 <button
                     onClick={onOpenSettings}
-                    className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1 mx-auto"
+                    className="text-xs text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1 mx-auto"
                 >
                     <span>Configure API Keys</span>
                 </button>
