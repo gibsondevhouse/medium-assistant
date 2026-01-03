@@ -9,6 +9,7 @@ import { DeepScribeLayout } from './components/DeepScribeLayout';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { Editor } from './components/Editor/Editor';
+import { ChatPanel } from './components/Chat/ChatPanel';
 import { useDraftStore } from './store/draftStore';
 
 function cn(...inputs: ClassValue[]) {
@@ -29,12 +30,20 @@ function App() {
     loadDrafts();
   }, []);
 
+  // Automatically switch to Editor when a draft is active
+  useEffect(() => {
+    if (activeDraft) {
+      setActiveView('Editor');
+    }
+  }, [activeDraft]);
+
   useEffect(() => {
     localStorage.setItem('activeProvider', activeProvider);
     // Sync provider to backend env if needed? For now just frontend state.
   }, [activeProvider]);
 
   const [activeView, setActiveView] = useState('Dashboard');
+  const [rightPanelMode, setRightPanelMode] = useState<'metadata' | 'chat'>('metadata');
 
   useEffect(() => {
     async function checkConnection() {
@@ -75,12 +84,12 @@ function App() {
 
   const handleCreateDraft = async () => {
     await createNewDraft();
-    setActiveView('Editor');
+    // useEffect will switch view
   };
 
   const handleSelectDraft = async (id: string) => {
     await selectDraft(id);
-    setActiveView('Editor');
+    // useEffect will switch view
   };
 
   const Sidebar = (
@@ -145,18 +154,28 @@ function App() {
               <div className="text-sm text-gray-600 italic">No drafts yet</div>
             ) : (
               drafts.map((draft) => (
-                <button
-                  key={draft.id}
-                  onClick={() => handleSelectDraft(draft.id)}
-                  className={cn(
-                    "text-left text-sm transition-all duration-200 truncate",
-                    activeDraft?.id === draft.id && activeView === 'Editor'
-                      ? "text-white translate-x-1"
-                      : "text-[#8b949e] hover:text-white hover:translate-x-1"
+                <div key={draft.id} className="flex flex-col">
+                  <button
+                    onClick={() => handleSelectDraft(draft.id)}
+                    className={cn(
+                      "text-left text-sm transition-all duration-200 truncate",
+                      activeDraft?.id === draft.id && activeView === 'Editor'
+                        ? "text-white translate-x-1"
+                        : "text-[#8b949e] hover:text-white hover:translate-x-1"
+                    )}
+                  >
+                    {draft.title || 'Untitled'}
+                  </button>
+                  {draft.tags && draft.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {draft.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] text-gray-600 bg-gray-800 px-1 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   )}
-                >
-                  {draft.title || 'Untitled'}
-                </button>
+                </div>
               ))
             )}
           </div>
@@ -170,12 +189,15 @@ function App() {
       <div className="p-8 shrink-0 bg-[#0d1117] border-t border-[#30363d]/30">
         <div className="space-y-4">
           <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-[0.1em]">Messages</h3>
-          <button className="block w-full text-left group">
-            <div className="text-sm font-bold text-white group-hover:translate-x-1 transition-transform duration-200">
+          <button
+            className="block w-full text-left group"
+            onClick={() => setRightPanelMode(rightPanelMode === 'chat' ? 'metadata' : 'chat')}
+          >
+            <div className={`text-sm font-bold group-hover:translate-x-1 transition-transform duration-200 ${rightPanelMode === 'chat' ? 'text-blue-400' : 'text-white'}`}>
               Editor Bot
             </div>
             <div className="text-xs text-[#8b949e] mt-1 truncate group-hover:text-gray-300 transition-colors">
-              Feedback on Chapter 3...
+              Click to toggle chat...
             </div>
           </button>
         </div>
@@ -299,7 +321,7 @@ function App() {
       <DeepScribeLayout
         sidebar={Sidebar}
         editor={activeView === 'Editor' ? <Editor /> : <Dashboard onOpenSettings={() => setShowSettings(true)} />}
-        metadata={Metadata}
+        metadata={rightPanelMode === 'chat' ? <ChatPanel /> : Metadata}
       />
     </>
   );

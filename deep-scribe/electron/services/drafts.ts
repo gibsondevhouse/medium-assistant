@@ -1,10 +1,13 @@
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import matter from 'gray-matter';
 
 export interface DraftMetadata {
     id: string; // filename without extension
     title: string;
+    tags: string[];
+    version: number;
     lastModified: number;
     preview: string;
     filepath: string;
@@ -38,15 +41,25 @@ export class DraftService {
                 .map(file => {
                     const filepath = path.join(this.draftsDir, file);
                     const stats = fs.statSync(filepath);
-                    const content = fs.readFileSync(filepath, 'utf-8');
-                    const titleLine = content.split('\n')[0] || 'Untitled';
-                    const title = titleLine.replace(/^#\s*/, '').trim().substring(0, 50) || 'Untitled Draft';
-                    const preview = content.substring(0, 100).replace(/\n/g, ' ').trim() + '...';
+                    const rawContent = fs.readFileSync(filepath, 'utf-8');
+
+                    // Parse frontmatter
+                    const { data, content: body } = matter(rawContent);
+
+                    // Fallbacks
+                    const title = data.title || body.split('\n')[0].replace(/^#\s*/, '').trim().substring(0, 50) || 'Untitled Draft';
+                    const tags = Array.isArray(data.tags) ? data.tags : [];
+                    const version = typeof data.version === 'number' ? data.version : 1;
+                    const preview = body.substring(0, 100).replace(/\n/g, ' ').trim() + '...';
+                    // Prefer frontmatter lastModified if available (e.g. for synced files), else fs stats
+                    const lastModified = data.lastModified ? Number(data.lastModified) : stats.mtimeMs;
 
                     return {
                         id: file.replace('.md', ''),
                         title,
-                        lastModified: stats.mtimeMs,
+                        tags,
+                        version,
+                        lastModified,
                         preview,
                         filepath
                     };
@@ -64,7 +77,8 @@ export class DraftService {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
             if (!fs.existsSync(filepath)) return null;
-            const content = fs.readFileSync(filepath, 'utf-8');
+            const rawContent = fs.readFileSync(filepath, 'utf-8');
+            const { content } = matter(rawContent);
             return { id, content };
         } catch (error) {
             console.error(`Failed to read draft ${id}:`, error);
@@ -72,10 +86,25 @@ export class DraftService {
         }
     }
 
-    saveDraft(id: string, content: string): boolean {
+    saveDraft(id: string, bodyContent: string): boolean {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
-            fs.writeFileSync(filepath, content, 'utf-8');
+            let existingData = {};
+
+            if (fs.existsSync(filepath)) {
+                const raw = fs.readFileSync(filepath, 'utf-8');
+                const parsed = matter(raw);
+                existingData = parsed.data;
+            }
+
+            // Update lastModified
+            const updatedData = {
+                ...existingData,
+                lastModified: Date.now()
+            };
+
+            const fileContent = matter.stringify(bodyContent, updatedData);
+            fs.writeFileSync(filepath, fileContent, 'utf-8');
             return true;
         } catch (error) {
             console.error(`Failed to save draft ${id}:`, error);
@@ -83,21 +112,55 @@ export class DraftService {
         }
     }
 
-    createDraft(title: string = 'Untitled Draft'): DraftMetadata | null {
+    updateMetadata(id: string, metadata: Partial<DraftMetadata>): boolean {
+        try {
+            const filepath = path.join(this.draftsDir, `${id}.md`);
+            if (!fs.existsSync(filepath)) return false;
+
+            const raw = fs.readFileSync(filepath, 'utf-8');
+            const parsed = matter(raw);
+
+            const updatedData = {
+                ...parsed.data,
+                ...metadata,
+                lastModified: Date.now()
+            };
+
+            const fileContent = matter.stringify(parsed.content, updatedData);
+            fs.writeFileSync(filepath, fileContent, 'utf-8');
+            return true;
+        } catch (error) {
+            console.error(`Failed to update metadata for ${id}:`, error);
+            return false;
+        }
+    }
+
+    createDraft(title: string = 'Untitled Draft', initialContent?: string, tags: string[] = []): DraftMetadata | null {
         try {
             const timestamp = Date.now();
             const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
             const id = `${safeTitle}-${timestamp}`;
             const filepath = path.join(this.draftsDir, `${id}.md`);
 
-            const initialContent = `# ${title}\n\nStart writing here...`;
-            fs.writeFileSync(filepath, initialContent, 'utf-8');
+            const data = {
+                title,
+                tags,
+                version: 1,
+                lastModified: timestamp
+            };
+
+            const body = initialContent || `# ${title}\n\nStart writing here...`;
+            const fileContent = matter.stringify(body, data);
+
+            fs.writeFileSync(filepath, fileContent, 'utf-8');
 
             return {
                 id,
                 title,
+                tags,
+                version: 1,
                 lastModified: timestamp,
-                preview: 'Start writing here...',
+                preview: body.substring(0, 100).replace(/\n/g, ' ').trim() + '...',
                 filepath
             };
         } catch (error) {
@@ -118,15 +181,5 @@ export class DraftService {
             console.error(`Failed to delete draft ${id}:`, error);
             return false;
         }
-    }
-
-    renameDraft(id: string, newTitle: string): boolean {
-        // Renaming logic might be complex if ID depends on title.
-        // For simplicity, we keep ID constant (filename) but updating the first line (Title) is content change.
-        // If we want to rename the FILE, we need to handle that.
-        // For now, let's just assume "saving content" updates the title in the file content.
-        // But if we want to change the ID/Filename, that breaks references.
-        // Let's stick to ID = filename, and Title is derived from content.
-        return true;
     }
 }

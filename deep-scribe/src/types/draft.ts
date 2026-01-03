@@ -1,6 +1,8 @@
 export interface Draft {
     id: string; // Filename without extension
     title: string;
+    tags: string[];
+    version: number;
     lastModified: number;
     preview: string;
     filepath: string;
@@ -15,7 +17,8 @@ export interface DraftStore {
 
     loadDrafts: () => Promise<void>;
     selectDraft: (id: string) => Promise<void>;
-    createNewDraft: (title?: string) => Promise<void>;
+    createNewDraft: (title?: string, initialContent?: string, tags?: string[]) => Promise<void>;
     saveCurrentDraft: (content: string) => Promise<void>;
+    updateDraftMetadata: (id: string, metadata: Partial<Draft>) => Promise<void>;
     deleteDraft: (id: string) => Promise<void>;
 }

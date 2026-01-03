@@ -216,8 +216,12 @@ ipcMain.handle('drafts:save', async (_, id: string, content: string) => {
   return draftService.saveDraft(id, content);
 });
 
-ipcMain.handle('drafts:create', async (_, title: string) => {
-  return draftService.createDraft(title);
+ipcMain.handle('drafts:create', async (_, title: string, initialContent?: string, tags?: string[]) => {
+  return draftService.createDraft(title, initialContent, tags);
+});
+
+ipcMain.handle('drafts:update-metadata', async (_, id: string, metadata: any) => {
+  return draftService.updateMetadata(id, metadata);
 });
 
 ipcMain.handle('drafts:delete', async (_, id: string) => {

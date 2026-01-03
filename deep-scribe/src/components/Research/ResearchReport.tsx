@@ -1,10 +1,32 @@
 
 import { useResearchStore } from '../../store/researchStore';
+import { useDraftStore } from '../../store/draftStore';
 import { ArrowLeft, Download, RotateCcw } from 'lucide-react';
 // import { ReactMarkdown } from 'react-markdown/lib/react-markdown'; // if we had it, but we'll specific render or raw for now
 
 export function ResearchReport() {
     const { finalReport, reset, query } = useResearchStore();
+    const { createNewDraft } = useDraftStore();
+
+    const handleExport = async () => {
+        if (!finalReport) return;
+
+        // Convert Markdown to HTML for TipTap if needed, or rely on Editor to handle Markdown input?
+        // TipTap works best with HTML.
+        // For now, let's wrap paragraphs in <p>.
+        // Simple conversion:
+        const htmlContent = finalReport
+            .split('\n\n')
+            .map(p => {
+                if (p.startsWith('# ')) return `<h1>${p.replace('# ', '')}</h1>`;
+                if (p.startsWith('## ')) return `<h2>${p.replace('## ', '')}</h2>`;
+                if (p.startsWith('- ')) return `<ul><li>${p.replace('- ', '')}</li></ul>`; // Very naive
+                return `<p>${p}</p>`;
+            })
+            .join('');
+
+        await createNewDraft(query, htmlContent, ['research', 'ai-generated']);
+    };
 
     return (
         <div className="h-full flex flex-col bg-[#0a0a0a]">
@@ -20,11 +42,17 @@ export function ResearchReport() {
                     <h2 className="text-sm font-mono text-gray-500 uppercase tracking-wider">Research Report</h2>
                 </div>
                 <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                    <button
+                        onClick={reset}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                    >
                         <RotateCcw className="w-4 h-4" />
                         Start Over
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-gray-200 transition-colors">
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
+                    >
                         <Download className="w-4 h-4" />
                         Export Article
                     </button>
