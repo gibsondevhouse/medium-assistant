@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
+import { Markdown } from 'tiptap-markdown';
 import { useDraftStore } from '../../store/draftStore';
 import { Save, Tag, Clock } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -22,6 +23,7 @@ export const Editor: React.FC = () => {
             Placeholder.configure({
                 placeholder: 'Tell your story...',
             }),
+            Markdown,
         ],
         editorProps: {
             attributes: {
@@ -30,7 +32,7 @@ export const Editor: React.FC = () => {
         },
         onUpdate: ({ editor }) => {
             // We handle save via debounce on content change
-            setLocalContent(editor.getHTML());
+            setLocalContent((editor.storage as any).markdown.getMarkdown());
         },
     });
 
@@ -66,7 +68,7 @@ export const Editor: React.FC = () => {
             // For now, if the editor content is empty, load it.
             // Or if we know we just switched.
             // Let's rely on the fact that when `activeDraft` changes ID, this runs.
-            const currentHTML = editor.getHTML();
+            // const currentHTML = editor.getHTML();
             // Basic check to prevent overwrite loop if we just saved
             // Ideally, the store shouldn't update 'activeDraft.content' on save unless it came from backend
 

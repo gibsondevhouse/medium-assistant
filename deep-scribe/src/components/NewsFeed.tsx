@@ -73,7 +73,7 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
 
             {/* Scrollable Center Feed */}
             <div className="flex-1 overflow-y-auto custom-scrollbar-vertical">
-            <div className="w-full max-w-[900px] mx-auto pt-8 pb-32 px-6 min-h-full flex flex-col">
+                <div className="w-full max-w-[900px] mx-auto pt-8 pb-32 px-6 min-h-full flex flex-col">
 
                     {/* Filter Tabs (Pills) */}
                     <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
@@ -213,6 +213,20 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
 
                 </div>
             </div>
+
+
+            <style>{`
+                @keyframes fadeInFromBottom {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
 
         </div>
     );

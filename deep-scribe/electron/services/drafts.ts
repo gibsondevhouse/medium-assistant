@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
@@ -27,21 +28,24 @@ export class DraftService {
         this.ensureDraftsDir();
     }
 
-    private ensureDraftsDir() {
-        if (!fs.existsSync(this.draftsDir)) {
-            fs.mkdirSync(this.draftsDir, { recursive: true });
+    private async ensureDraftsDir() {
+        try {
+            await fsPromises.access(this.draftsDir);
+        } catch {
+            await fsPromises.mkdir(this.draftsDir, { recursive: true });
         }
     }
 
-    listDrafts(): DraftMetadata[] {
+    async listDrafts(): Promise<DraftMetadata[]> {
         try {
-            const files = fs.readdirSync(this.draftsDir);
-            const drafts: DraftMetadata[] = files
+            await this.ensureDraftsDir();
+            const files = await fsPromises.readdir(this.draftsDir);
+            const draftsPromises = files
                 .filter(file => file.endsWith('.md'))
-                .map(file => {
+                .map(async file => {
                     const filepath = path.join(this.draftsDir, file);
-                    const stats = fs.statSync(filepath);
-                    const rawContent = fs.readFileSync(filepath, 'utf-8');
+                    const stats = await fsPromises.stat(filepath);
+                    const rawContent = await fsPromises.readFile(filepath, 'utf-8');
 
                     // Parse frontmatter
                     const { data, content: body } = matter(rawContent);
@@ -63,21 +67,26 @@ export class DraftService {
                         preview,
                         filepath
                     };
-                })
-                .sort((a, b) => b.lastModified - a.lastModified);
+                });
 
-            return drafts;
+            const drafts = await Promise.all(draftsPromises);
+            return drafts.sort((a, b) => b.lastModified - a.lastModified);
         } catch (error) {
             console.error('Failed to list drafts:', error);
             return [];
         }
     }
 
-    readDraft(id: string): DraftContent | null {
+    async readDraft(id: string): Promise<DraftContent | null> {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
-            if (!fs.existsSync(filepath)) return null;
-            const rawContent = fs.readFileSync(filepath, 'utf-8');
+            try {
+                await fsPromises.access(filepath);
+            } catch {
+                return null;
+            }
+
+            const rawContent = await fsPromises.readFile(filepath, 'utf-8');
             const { content } = matter(rawContent);
             return { id, content };
         } catch (error) {
@@ -86,15 +95,17 @@ export class DraftService {
         }
     }
 
-    saveDraft(id: string, bodyContent: string): boolean {
+    async saveDraft(id: string, bodyContent: string): Promise<boolean> {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
             let existingData = {};
 
-            if (fs.existsSync(filepath)) {
-                const raw = fs.readFileSync(filepath, 'utf-8');
+            try {
+                const raw = await fsPromises.readFile(filepath, 'utf-8');
                 const parsed = matter(raw);
                 existingData = parsed.data;
+            } catch {
+                // File might not exist or read failed, proceed with empty metadata
             }
 
             // Update lastModified
@@ -104,7 +115,7 @@ export class DraftService {
             };
 
             const fileContent = matter.stringify(bodyContent, updatedData);
-            fs.writeFileSync(filepath, fileContent, 'utf-8');
+            await fsPromises.writeFile(filepath, fileContent, 'utf-8');
             return true;
         } catch (error) {
             console.error(`Failed to save draft ${id}:`, error);
@@ -112,12 +123,16 @@ export class DraftService {
         }
     }
 
-    updateMetadata(id: string, metadata: Partial<DraftMetadata>): boolean {
+    async updateMetadata(id: string, metadata: Partial<DraftMetadata>): Promise<boolean> {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
-            if (!fs.existsSync(filepath)) return false;
+            try {
+                await fsPromises.access(filepath);
+            } catch {
+                return false;
+            }
 
-            const raw = fs.readFileSync(filepath, 'utf-8');
+            const raw = await fsPromises.readFile(filepath, 'utf-8');
             const parsed = matter(raw);
 
             const updatedData = {
@@ -127,7 +142,7 @@ export class DraftService {
             };
 
             const fileContent = matter.stringify(parsed.content, updatedData);
-            fs.writeFileSync(filepath, fileContent, 'utf-8');
+            await fsPromises.writeFile(filepath, fileContent, 'utf-8');
             return true;
         } catch (error) {
             console.error(`Failed to update metadata for ${id}:`, error);
@@ -135,8 +150,9 @@ export class DraftService {
         }
     }
 
-    createDraft(title: string = 'Untitled Draft', initialContent?: string, tags: string[] = []): DraftMetadata | null {
+    async createDraft(title: string = 'Untitled Draft', initialContent?: string, tags: string[] = []): Promise<DraftMetadata | null> {
         try {
+            await this.ensureDraftsDir();
             const timestamp = Date.now();
             const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
             const id = `${safeTitle}-${timestamp}`;
@@ -152,7 +168,7 @@ export class DraftService {
             const body = initialContent || `# ${title}\n\nStart writing here...`;
             const fileContent = matter.stringify(body, data);
 
-            fs.writeFileSync(filepath, fileContent, 'utf-8');
+            await fsPromises.writeFile(filepath, fileContent, 'utf-8');
 
             return {
                 id,
@@ -169,14 +185,15 @@ export class DraftService {
         }
     }
 
-    deleteDraft(id: string): boolean {
+    async deleteDraft(id: string): Promise<boolean> {
         try {
             const filepath = path.join(this.draftsDir, `${id}.md`);
-            if (fs.existsSync(filepath)) {
-                fs.unlinkSync(filepath);
+            try {
+                await fsPromises.unlink(filepath);
                 return true;
+            } catch {
+                return false;
             }
-            return false;
         } catch (error) {
             console.error(`Failed to delete draft ${id}:`, error);
             return false;
