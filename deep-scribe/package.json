@@ -26,6 +26,10 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@tiptap/extension-placeholder": "^3.14.0",
+    "@tiptap/extension-typography": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
     "clsx": "^2.1.1",
     "electron-is-dev": "^2.0.0",
     "electron-store": "^8.1.0",
