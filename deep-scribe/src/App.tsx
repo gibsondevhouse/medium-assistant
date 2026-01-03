@@ -29,6 +29,13 @@ function App() {
     loadDrafts();
   }, []);
 
+  // Automatically switch to Editor when a draft is active
+  useEffect(() => {
+    if (activeDraft) {
+      setActiveView('Editor');
+    }
+  }, [activeDraft]);
+
   useEffect(() => {
     localStorage.setItem('activeProvider', activeProvider);
     // Sync provider to backend env if needed? For now just frontend state.
@@ -75,12 +82,12 @@ function App() {
 
   const handleCreateDraft = async () => {
     await createNewDraft();
-    setActiveView('Editor');
+    // useEffect will switch view
   };
 
   const handleSelectDraft = async (id: string) => {
     await selectDraft(id);
-    setActiveView('Editor');
+    // useEffect will switch view
   };
 
   const Sidebar = (

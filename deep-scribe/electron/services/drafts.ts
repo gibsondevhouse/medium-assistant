@@ -15,11 +15,7 @@ export interface DraftMetadata {
 
 export interface DraftContent {
     id: string;
-    content: string; // This will now include frontmatter if we read strictly, but ideally we return parsed content?
-    // Actually, for the editor, we probably want just the body, OR we handle frontmatter in the UI.
-    // Let's stick to "content" being the Markdown BODY for the Editor.
-    // Metadata is passed separately.
-    // BUT, when saving, we need to preserve frontmatter.
+    content: string;
 }
 
 export class DraftService {
@@ -130,9 +126,6 @@ export class DraftService {
                 lastModified: Date.now()
             };
 
-            // Don't overwrite essential fields if passed incorrectly, but generally we trust the caller.
-            // ID and filepath are immutable in the file itself usually.
-
             const fileContent = matter.stringify(parsed.content, updatedData);
             fs.writeFileSync(filepath, fileContent, 'utf-8');
             return true;
@@ -142,7 +135,7 @@ export class DraftService {
         }
     }
 
-    createDraft(title: string = 'Untitled Draft'): DraftMetadata | null {
+    createDraft(title: string = 'Untitled Draft', initialContent?: string, tags: string[] = []): DraftMetadata | null {
         try {
             const timestamp = Date.now();
             const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
@@ -151,23 +144,23 @@ export class DraftService {
 
             const data = {
                 title,
-                tags: [],
+                tags,
                 version: 1,
                 lastModified: timestamp
             };
 
-            const initialBody = `# ${title}\n\nStart writing here...`;
-            const fileContent = matter.stringify(initialBody, data);
+            const body = initialContent || `# ${title}\n\nStart writing here...`;
+            const fileContent = matter.stringify(body, data);
 
             fs.writeFileSync(filepath, fileContent, 'utf-8');
 
             return {
                 id,
                 title,
-                tags: [],
+                tags,
                 version: 1,
                 lastModified: timestamp,
-                preview: 'Start writing here...',
+                preview: body.substring(0, 100).replace(/\n/g, ' ').trim() + '...',
                 filepath
             };
         } catch (error) {

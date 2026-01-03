@@ -31,7 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     read: (id: string) => ipcRenderer.invoke('drafts:read', id),
     save: (id: string, content: string) => ipcRenderer.invoke('drafts:save', id, content),
     updateMetadata: (id: string, metadata: any) => ipcRenderer.invoke('drafts:update-metadata', id, metadata),
-    create: (title: string) => ipcRenderer.invoke('drafts:create', title),
+    create: (title: string, initialContent?: string, tags?: string[]) => ipcRenderer.invoke('drafts:create', title, initialContent, tags),
     delete: (id: string) => ipcRenderer.invoke('drafts:delete', id),
   }
 });

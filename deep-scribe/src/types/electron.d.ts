@@ -33,7 +33,7 @@ declare global {
                 read: (id: string) => Promise<{ id: string; content: string } | null>;
                 save: (id: string, content: string) => Promise<boolean>;
                 updateMetadata: (id: string, metadata: any) => Promise<boolean>;
-                create: (title: string) => Promise<{ id: string; title: string; tags: string[]; version: number; lastModified: number; preview: string; filepath: string } | null>;
+                create: (title: string, initialContent?: string, tags?: string[]) => Promise<{ id: string; title: string; tags: string[]; version: number; lastModified: number; preview: string; filepath: string } | null>;
                 delete: (id: string) => Promise<boolean>;
             };
         };

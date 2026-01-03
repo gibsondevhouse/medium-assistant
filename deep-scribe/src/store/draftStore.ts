@@ -42,10 +42,10 @@ export const useDraftStore = create<DraftStore>((set, get) => ({
         }
     },
 
-    createNewDraft: async (title: string = 'Untitled Draft') => {
+    createNewDraft: async (title: string = 'Untitled Draft', initialContent?: string, tags: string[] = []) => {
         set({ isLoading: true, error: null });
         try {
-            const newDraftMeta = await electron.drafts.create(title);
+            const newDraftMeta = await electron.drafts.create(title, initialContent, tags);
             if (newDraftMeta) {
                 // Refresh list
                 await get().loadDrafts();
