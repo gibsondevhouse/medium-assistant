@@ -71,10 +71,10 @@ export function TopicGraph() {
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 fitView
-                className="bg-[#0a0a0a]"
+                className="bg-surface-100"
             >
-                <Background color="#333" gap={20} />
-                <Controls className="bg-[#1e1e1e] border-white/10" />
+                <Background color="var(--brand-accent)" gap={20} className="opacity-10" />
+                <Controls className="bg-surface-200 border-white/10 fill-text-primary text-text-primary" />
             </ReactFlow>
 
             {/* Floating Action Bar - Now integrated into TopicGraph since it's specific to reviewing_plan state */}
@@ -82,7 +82,7 @@ export function TopicGraph() {
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
                     <button
                         onClick={startDeepResearch}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-medium shadow-lg shadow-blue-900/40 transition-all hover:scale-105"
+                        className="flex items-center gap-2 bg-brand-primary hover:bg-brand-secondary text-surface-100 px-6 py-3 rounded-full font-medium shadow-lg shadow-brand-primary/40 transition-all hover:scale-105"
                     >
                         <Play className="w-4 h-4 fill-current" />
                         Start Deep Research
@@ -93,8 +93,8 @@ export function TopicGraph() {
             {/* Progress indicator during research */}
             {status === 'researching' && (
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-3 bg-[#1e1e1e] text-white px-6 py-3 rounded-full border border-white/10 shadow-xl">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                    <div className="flex items-center gap-3 bg-surface-200 text-text-primary px-6 py-3 rounded-full border border-white/10 shadow-xl">
+                        <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
                         <span className="text-sm font-medium">Researching {nodes.filter(n => n.data.status === 'done').length}/{nodes.length - 1} topics...</span>
                     </div>
                 </div>
@@ -103,8 +103,8 @@ export function TopicGraph() {
             {/* Synthesizing indicator */}
             {status === 'synthesizing' && (
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-3 bg-[#1e1e1e] text-white px-6 py-3 rounded-full border border-white/10 shadow-xl animate-pulse">
-                        <FileText className="w-4 h-4 text-purple-400" />
+                    <div className="flex items-center gap-3 bg-surface-200 text-text-primary px-6 py-3 rounded-full border border-white/10 shadow-xl animate-pulse">
+                        <FileText className="w-4 h-4 text-brand-secondary" />
                         <span className="text-sm font-medium">Writing Final Report...</span>
                     </div>
                 </div>
