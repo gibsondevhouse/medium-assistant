@@ -1,25 +1,27 @@
-
 import { create } from 'zustand';
-import { Edge, Node, NodeChange, EdgeChange, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import { ResearchSession, ResearchStatus } from '../types/research';
+import { ResearchStatus, ResearchHypothesis, ResearchSource, ArticleOutline } from '../types/research';
 
 interface ResearchState {
-    // Current Session Data
     query: string;
     status: ResearchStatus;
-    nodes: Node[];
-    edges: Edge[];
-    finalReport: string | null;
+
+    // Level 1
+    sources: ResearchSource[];
+    hypotheses: ResearchHypothesis[];
+
+    // Level 3
+    outlines: ArticleOutline[];
+
     error: string | null;
 
+    // Actions
     setQuery: (query: string) => void;
     setStatus: (status: ResearchStatus) => void;
-    setNodes: (nodes: Node[]) => void;
-    setEdges: (edges: Edge[]) => void;
-    onNodesChange: (changes: NodeChange[]) => void;
-    onEdgesChange: (changes: EdgeChange[]) => void;
-    updateNodeStatus: (nodeId: string, status: 'pending' | 'loading' | 'done' | 'error', findings?: string) => void;
-    setFinalReport: (report: string) => void;
+    setSources: (sources: ResearchSource[]) => void;
+    setHypotheses: (hypotheses: ResearchHypothesis[]) => void;
+    toggleHypothesis: (id: string) => void;
+    updateHypothesisStatus: (id: string, status: ResearchHypothesis['status'], findings?: string) => void;
+    setOutlines: (outlines: ArticleOutline[]) => void;
     setError: (error: string | null) => void;
     reset: () => void;
 }
@@ -27,53 +29,39 @@ interface ResearchState {
 export const useResearchStore = create<ResearchState>((set, get) => ({
     query: '',
     status: 'idle',
-    nodes: [],
-    edges: [],
-    finalReport: null,
+    sources: [],
+    hypotheses: [],
+    outlines: [],
     error: null,
 
     setQuery: (query) => set({ query }),
     setStatus: (status) => set({ status }),
-    setNodes: (nodes) => set({ nodes }),
-    setEdges: (edges) => set({ edges }),
+    setSources: (sources) => set({ sources }),
+    setHypotheses: (hypotheses) => set({ hypotheses }),
 
-    onNodesChange: (changes) => {
-        set({
-            nodes: applyNodeChanges(changes, get().nodes),
-        });
-    },
-    onEdgesChange: (changes) => {
-        set({
-            edges: applyEdgeChanges(changes, get().edges),
-        });
+    toggleHypothesis: (id) => {
+        const hypotheses = get().hypotheses.map(h =>
+            h.id === id ? { ...h, selected: !h.selected } : h
+        );
+        set({ hypotheses });
     },
 
-    updateNodeStatus: (nodeId, status, findings) => {
-        const nodes = get().nodes.map((node) => {
-            if (node.id === nodeId) {
-                return {
-                    ...node,
-                    data: {
-                        ...node.data,
-                        status,
-                        ...(findings ? { findings } : {}),
-                    },
-                };
-            }
-            return node;
-        });
-        set({ nodes });
+    updateHypothesisStatus: (id, status, findings) => {
+        const hypotheses = get().hypotheses.map(h =>
+            h.id === id ? { ...h, status, ...(findings ? { findings } : {}) } : h
+        );
+        set({ hypotheses });
     },
 
-    setFinalReport: (report) => set({ finalReport: report }),
+    setOutlines: (outlines) => set({ outlines }),
     setError: (error) => set({ error }),
 
     reset: () => set({
         query: '',
         status: 'idle',
-        nodes: [],
-        edges: [],
-        finalReport: null,
+        sources: [],
+        hypotheses: [],
+        outlines: [],
         error: null,
     }),
 }));

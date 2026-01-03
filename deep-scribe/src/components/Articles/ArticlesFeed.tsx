@@ -3,6 +3,7 @@ import React from 'react';
 import { Bookmark, Plus, Mic, ArrowUp, ExternalLink } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { MosaicGrid } from '../ui/MosaicGrid';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,14 +26,6 @@ interface MediumArticle {
 
 interface ArticlesFeedProps {
   onOpenSettings: () => void;
-}
-
-// Helper to get span classes for editorial masonry
-function getCardSpanClass(index: number): string {
-  // Pattern: hero (2x2), sub-hero (1x2), then basic cards fill rest
-  if (index === 0) return 'md:col-span-2 md:row-span-2';
-  if (index === 1) return 'md:col-span-1 md:row-span-2';
-  return 'col-span-1 md:row-span-1';
 }
 
 export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
@@ -106,24 +99,36 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
     }
   };
 
+  // Derive the source list based on active filter
+  const sourceArticles = React.useMemo(() => {
+    if (activeTag) {
+      return allArticles.filter(article => article.tags.includes(activeTag));
+    }
+    return allArticles;
+  }, [activeTag, allArticles]);
+
   // Intersection Observer for Client-Side Pagination
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoading && allArticles.length > displayedArticles.length) {
-
+        const target = entries[0];
+        if (target.isIntersecting && !isLoading && sourceArticles.length > displayedArticles.length) {
           setIsLoading(true);
           // Simulate small network delay for UX
           setTimeout(() => {
             const nextPage = page + 1;
-            const nextBatch = allArticles.slice(0, nextPage * ITEMS_PER_PAGE);
+            const nextBatch = sourceArticles.slice(0, nextPage * ITEMS_PER_PAGE);
             setDisplayedArticles(nextBatch);
             setPage(nextPage);
             setIsLoading(false);
           }, 600);
         }
       },
-      { threshold: 0.1 }
+      {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.5
+      }
     );
 
     if (sentinelRef.current) {
@@ -131,27 +136,22 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
     }
 
     return () => observer.disconnect();
-  }, [isLoading, allArticles, displayedArticles, page]);
+  }, [isLoading, sourceArticles, displayedArticles, page]);
 
-  // Get all unique tags from ALL articles (not just displayed)
+  // Get all unique tags from ALL articles
   const allTags = Array.from(
     new Set(allArticles.flatMap(article => article.tags))
   ).sort();
 
+  // Limit visual tags to stop "too plentiful"
+  const visibleTags = allTags.slice(0, 10);
+
   // Update filtered articles when activeTag changes
   useEffect(() => {
-    if (activeTag) {
-      const filtered = allArticles.filter(article => article.tags.includes(activeTag));
-      setDisplayedArticles(filtered.slice(0, page * ITEMS_PER_PAGE)); // Respect current page size or reset? 
-      // Better reset pagination for filtered view or just show matched.
-      // For simplicity, let's show all matched for now, or paginated matched.
-      setDisplayedArticles(filtered);
-    } else if (allArticles.length > 0) {
-      // Reset to paginated view
-      setDisplayedArticles(allArticles.slice(0, page * ITEMS_PER_PAGE));
-    }
-  }, [activeTag, allArticles, page]);
-
+    // When tag changes, reset pagination and load first batch of the NEW source
+    setPage(1);
+    setDisplayedArticles(sourceArticles.slice(0, ITEMS_PER_PAGE));
+  }, [sourceArticles]); // Depend on sourceArticles (which changes with activeTag)
 
   // Map articles with animation timing and calculate Display Card Type
   const articlesWithAnimation = displayedArticles.map((article, index) => ({
@@ -201,7 +201,7 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
               >
                 All Articles
               </button>
-              {allTags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
@@ -215,17 +215,27 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
                   {tag}
                 </button>
               ))}
+              {/* Empty "Add" Pill */}
+              <button
+                onClick={onOpenSettings} /* Assuming settings is where they manage feeds/tags */
+                className="w-9 h-9 rounded-full border border-[#30363d] bg-transparent text-[#8b949e] hover:bg-white/10 hover:text-white hover:border-white transition-all flex items-center justify-center shrink-0"
+                title="Manage Topics"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Editorial Masonry Grid */}
-            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gridAutoRows: '280px' }}>
-              {articlesWithAnimation.map(({ article, delay }, index) => (
+            {/* Editorial Mosaic Grid */}
+            <MosaicGrid
+              items={articlesWithAnimation}
+              keyExtractor={(item) => item.article.id}
+              pattern="editorial"
+              renderItem={({ article, delay }, index, spanClass) => (
                 <article
-                  key={`${article.id}-${index}`}
                   className={cn(
                     "group relative bg-[#161b22] rounded-lg border border-[#30363d] overflow-hidden hover:border-blue-500/50 transition-all duration-500 cursor-pointer flex flex-col",
                     "animate-fade-up",
-                    getCardSpanClass(index % 10) // Only use first 10 for spanning pattern
+                    spanClass
                   )}
                   style={{
                     animation: `fadeInUp 0.6s ease-out forwards`,
@@ -321,11 +331,22 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
                     </button>
                   </div>
                 </article>
-              ))}
-            </div>
+              )}
+            />
 
-            {/* Pagination Sentinel */}
-            <div ref={sentinelRef} className="h-8 mt-8" />
+            {/* Pagination Sentinel & Loading State */}
+            <div ref={sentinelRef} className="w-full flex justify-center py-8 min-h-[50px]">
+              {isLoading && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce"></div>
+                </div>
+              )}
+              {!isLoading && displayedArticles.length > 0 && displayedArticles.length >= sourceArticles.length && (
+                <p className="text-gray-500 text-sm">You've reached the end of the list.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -342,7 +363,6 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
           }
         }
       `}</style>
-
       {/* Floating Command Capsule (Search) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[700px] z-50">
         <div className="bg-[#1e1e1e]/85 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-full p-2 flex items-center gap-3 transition-all duration-300 focus-within:bg-[#1e1e1e]/95 focus-within:shadow-[0_15px_50px_rgba(0,0,0,0.6)] focus-within:border-white/20">
@@ -364,6 +384,6 @@ export function ArticlesFeed({ onOpenSettings }: ArticlesFeedProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

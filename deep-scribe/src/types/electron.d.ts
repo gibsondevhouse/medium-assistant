@@ -7,14 +7,14 @@ declare global {
             logger: {
                 log: (level: string, message: string, ...args: any[]) => void;
             };
+            openExternal: (url: string) => void;
             rss: {
                 fetch: (url: string) => Promise<{ success: boolean; feed?: any; error?: string }>;
             };
             settings: {
                 getGeminiKey: () => Promise<string | null>;
                 setGeminiKey: (key: string) => Promise<{ success: boolean; error?: string }>;
-                getGNewsKey: () => Promise<string | null>;
-                setGNewsKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+
                 getRssUrl: () => Promise<string>;
                 setRssUrl: (url: string) => Promise<void>;
                 getAnthropicKey: () => Promise<string | null>;
@@ -23,8 +23,11 @@ declare global {
                 setDeepSeekKey: (key: string) => Promise<{ success: boolean; error?: string }>;
                 getPerplexityKey: () => Promise<string | null>;
                 setPerplexityKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+                getOpenRouterKey: () => Promise<string | null>;
+                setOpenRouterKey: (key: string) => Promise<{ success: boolean; error?: string }>;
+                getOpenAIKey: () => Promise<string | null>;
+                setOpenAIKey: (key: string) => Promise<{ success: boolean; error?: string }>;
                 testGeminiKey: (key?: string) => Promise<{ success: boolean; error?: string }>;
-                testGNewsKey: (key?: string) => Promise<{ success: boolean; error?: string }>;
                 clearAllKeys: () => Promise<{ success: boolean }>;
                 bothKeysSet: () => Promise<boolean>;
             };
@@ -35,6 +38,11 @@ declare global {
                 updateMetadata: (id: string, metadata: any) => Promise<boolean>;
                 create: (title: string, initialContent?: string, tags?: string[]) => Promise<{ id: string; title: string; tags: string[]; version: number; lastModified: number; preview: string; filepath: string } | null>;
                 delete: (id: string) => Promise<boolean>;
+            };
+            research: {
+                sourceRun: (query: string) => Promise<any>;
+                researchRun: (hypotheses: any[]) => Promise<any>;
+                creativeRun: (findings: any[]) => Promise<any>;
             };
         };
     }

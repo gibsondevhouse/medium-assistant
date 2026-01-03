@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
 from router import UnifiedRouter
+import uvicorn
 
 load_dotenv()
 

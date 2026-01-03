@@ -1,66 +1,94 @@
 import { ArticleCard } from '../types/articles';
-import { getGNewsKey } from './settings-keys';
 
-const BASE_URL = 'https://gnews.io/api/v4/top-headlines';
+const GOOGLE_NEWS_RSS_BASE = 'https://news.google.com/rss';
 
-interface GNewsArticle {
-    title: string;
-    description: string;
-    content: string;
-    url: string;
-    image: string;
-    publishedAt: string;
-    source: {
-        name: string;
-        url: string;
-    };
-}
-
-interface GNewsResponse {
-    totalArticles: number;
-    articles: GNewsArticle[];
-}
-
-export async function fetchArticles(page: number): Promise<{ hero: ArticleCard | null, subHero: ArticleCard[], basic: ArticleCard[] }> {
-    const apiKey = await getGNewsKey();
-
-    if (!apiKey) {
-        console.warn('GNews API Key is missing. Using mock data.');
-        return generateMockData(page);
-    }
-
+export async function fetchArticles(category: string = 'All'): Promise<{ hero: ArticleCard | null, subHero: ArticleCard[], basic: ArticleCard[] }> {
     try {
-        const response = await fetch(`${BASE_URL}?category=technology&lang=en&country=us&max=21&page=${page}&apikey=${apiKey}`);
+        let rssUrl = GOOGLE_NEWS_RSS_BASE; // Default to Top Stories
 
-        if (!response.ok) {
-            // Fallback to mock on error (e.g. 403, 429)
-            if (response.status === 401 || response.status === 403 || response.status === 429) {
-                console.warn(`GNews API Error: ${response.status}. Falling back to mock data.`);
-                return generateMockData(page);
-            }
-            throw new Error(`News API Error: ${response.statusText}`);
+        // Simple mapping for topic-based feeds
+        // Note: For more specific topics, we can use search?q={query}&hl=en-US&gl=US&ceid=US:en
+        switch (category) {
+            case 'Tech':
+                rssUrl = `${GOOGLE_NEWS_RSS_BASE}/topics/CAAqJggKIiB7QkFTRV9VQVJMX3RvcGljX2lkfQ?hl=en-US&gl=US&ceid=US:en&q=Technology`;
+                // Better approach: Use search for reliable categorization if topics IDs are unstable
+                rssUrl = `https://news.google.com/rss/search?q=technology&hl=en-US&gl=US&ceid=US:en`;
+                break;
+            case 'Design':
+                rssUrl = `https://news.google.com/rss/search?q=design+latency+ui+ux&hl=en-US&gl=US&ceid=US:en`;
+                break;
+            case 'Crypto':
+                rssUrl = `https://news.google.com/rss/search?q=cryptocurrency+blockchain&hl=en-US&gl=US&ceid=US:en`;
+                break;
+            case 'Culture':
+                rssUrl = `https://news.google.com/rss/search?q=internet+culture+social+media&hl=en-US&gl=US&ceid=US:en`;
+                break;
+            case 'All':
+            default:
+                // Top stories US
+                rssUrl = `${GOOGLE_NEWS_RSS_BASE}?hl=en-US&gl=US&ceid=US:en`;
+                break;
         }
 
-        const data: GNewsResponse = await response.json();
-        return mapArticles(data.articles, page);
+        const response = await window.electronAPI.rss.fetch(rssUrl);
+
+        if (!response.success || !response.feed) {
+            console.warn('RSS Fetch failed, using mock data:', response.error);
+            return generateMockData(category); // Pass category for context-aware mocks if we wanted
+        }
+
+        return mapRssToArticles(response.feed.items);
 
     } catch (error) {
-        console.error('Failed to fetch articles, using mock data:', error);
-        return generateMockData(page);
+        console.error('Failed to fetch RSS articles:', error);
+        return generateMockData(category);
     }
 }
 
-function mapArticles(articles: any[], page: number) {
-    const mappedArticles: ArticleCard[] = articles.map((article, index) => ({
-        id: `${article.url}-${index}-${page}`,
-        title: article.title,
-        description: article.description,
-        image: article.image,
-        url: article.url,
-        publishedAt: article.publishedAt,
-        source: { name: article.source.name },
-        cardType: 'basic',
-    }));
+function mapRssToArticles(items: any[]) {
+    const mappedArticles: ArticleCard[] = items.map((item, index) => {
+        let image = `https://picsum.photos/seed/${index}/800/600`;
+
+        // 1. Try standard RSS enclosure/media:content if available directly
+        if (item.enclosure && item.enclosure.url) {
+            image = item.enclosure.url;
+        } else if (item['media:content'] && item['media:content'].$ && item['media:content'].$.url) {
+            image = item['media:content'].$.url;
+        } else if (item['media:content'] && item['media:content'].url) {
+            image = item['media:content'].url;
+        } else {
+            // 2. Parse HTML content for images (Google News often hides it here)
+            const htmlToParse = item['content:encoded'] || item.content || item.description || '';
+            if (htmlToParse) {
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlToParse, 'text/html');
+                    const img = doc.querySelector('img');
+                    if (img && img.src) {
+                        image = img.src;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse HTML for image:', e);
+                }
+            }
+        }
+
+        // Additional cleanup for Google News specific images which can be tiny thumbnails
+        // Check if it's a google news thumbnail which often looks like .../w100-h100/...
+        // We can try to strip parsing params to get high res, but it's flaky. 
+        // For now, let's stick to just finding *an* image.
+
+        return {
+            id: item.guid || item.link || `rss-${index}`,
+            title: item.title,
+            description: (item.contentSnippet || item.description || '').replace(/<[^>]*>/g, '').slice(0, 150) + '...',
+            image: image,
+            url: item.link,
+            publishedAt: item.pubDate,
+            source: { name: item.source || 'Google News' },
+            cardType: 'basic',
+        };
+    });
 
     if (mappedArticles.length === 0) return { hero: null, subHero: [], basic: [] };
 
@@ -73,12 +101,12 @@ function mapArticles(articles: any[], page: number) {
     return { hero, subHero, basic };
 }
 
-function generateMockData(page: number) {
+function generateMockData(category: string) {
     const mockArticles: ArticleCard[] = Array.from({ length: 21 }).map((_, i) => ({
-        id: `mock-${page}-${i}`,
-        title: `Mock Article ${i + 1} - Page ${page}`,
-        description: 'This is a placeholder description for the mock article. It demonstrates the layout structure without needing a live API connection.',
-        image: `https://picsum.photos/seed/${page * 21 + i}/800/600`,
+        id: `mock-${category}-${i}`,
+        title: `Mock ${category} Article ${i + 1}`,
+        description: 'This is a placeholder description. The feed failed to load, so you are seeing this mock content.',
+        image: `https://picsum.photos/seed/${category}${i}/800/600`,
         url: '#',
         publishedAt: new Date().toISOString(),
         source: { name: 'Mock Source' },

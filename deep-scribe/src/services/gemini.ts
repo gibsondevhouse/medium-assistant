@@ -6,7 +6,7 @@ import { aiRouter } from './ai-router';
 // Helper to get current settings
 const getSettings = () => {
     const provider = localStorage.getItem('activeProvider') || 'gemini';
-    let model = 'gemini-1.5-pro'; // Default
+    let model = 'gemini-pro'; // Default
     try {
         const stored = localStorage.getItem('deep-scribe-settings');
         if (stored) {

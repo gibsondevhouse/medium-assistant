@@ -52,14 +52,12 @@ export const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
             <div className="flex justify-between items-center mb-2">
                 <label className="text-sm font-medium text-zinc-300">{label}</label>
-                <a
-                    href={getKeyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                <button
+                    onClick={() => window.electronAPI.openExternal(getKeyUrl)}
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer"
                 >
                     Get Key <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
             </div>
 
             {isEditing ? (

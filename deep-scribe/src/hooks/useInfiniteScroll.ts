@@ -10,17 +10,23 @@ interface UseInfiniteScrollResult {
     sentinelRef: React.RefObject<HTMLDivElement>;
 }
 
-export function useInfiniteScroll(): UseInfiniteScrollResult {
+export function useInfiniteScroll(category: string = 'All'): UseInfiniteScrollResult {
     const [articles, setArticles] = useState<ArticleCard[]>([]);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [error, setError] = useState<Error | null>(null);
     const [hasMore, setHasMore] = useState(true);
 
+    // Reset state when category changes
+    useEffect(() => {
+        setArticles([]);
+        setPage(1);
+        setHasMore(true);
+        setError(null);
+    }, [category]);
+
     // Using a ref for the observer to persist across renders
     const sentinelRef = useRef<HTMLDivElement>(null);
-    // Track if we are currently observing to prevent double attaches in strict mode if not careful,
-    // though the cleanup function handles it.
 
     const loadMore = useCallback(async () => {
         if (loading || !hasMore) return;
@@ -29,7 +35,19 @@ export function useInfiniteScroll(): UseInfiniteScrollResult {
         setError(null);
 
         try {
-            const { hero, subHero, basic } = await fetchArticles(page);
+            // We pass category to fetchArticles
+            // Note: RSS feed is not paginated in the implementation we made,
+            // but we might want to simulate pagination or just load once.
+            // For now, if page > 1 and it's RSS, we might just stop or reload same feed?
+            // Actually, Google News RSS doesn't support pagination.
+            // So for RSS, we should only load once (page 1).
+            if (page > 1) {
+                setHasMore(false);
+                setLoading(false);
+                return;
+            }
+
+            const { hero, subHero, basic } = await fetchArticles(category);
 
             const newBatch = [
                 ...(hero ? [hero] : []),
@@ -48,10 +66,10 @@ export function useInfiniteScroll(): UseInfiniteScrollResult {
         } finally {
             setLoading(false);
         }
-    }, [page, loading, hasMore]);
+    }, [page, loading, hasMore, category]);
 
     useEffect(() => {
-        // Initial load
+        // Initial load or when category changed (and reset)
         if (page === 1 && articles.length === 0) {
             loadMore();
         }

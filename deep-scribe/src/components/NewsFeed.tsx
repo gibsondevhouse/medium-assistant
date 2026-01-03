@@ -4,6 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { ArticleCard } from '../types/articles';
+import { MosaicGrid } from './ui/MosaicGrid';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -11,22 +12,13 @@ function cn(...inputs: ClassValue[]) {
 
 export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
     const [activeTab, setActiveTab] = useState<'All' | 'Tech' | 'Design' | 'Crypto' | 'Culture'>('All');
-    const [hasKey, setHasKey] = useState<boolean | null>(null);
+
 
     // Using the custom hook for infinite scroll data
     // We conditionally allow fetching only if we think we might have a key, 
     // but hooks can't be conditional. Ideally useInfiniteScroll should handle "skip".
     // For now we'll let it run, it will likely fail silently or we ignore it if !hasKey.
-    const { articles, loading, hasMore, sentinelRef } = useInfiniteScroll();
-
-    useEffect(() => {
-        // Check for GNews key
-        if (window.electronAPI?.settings) {
-            window.electronAPI.settings.getGNewsKey().then(key => {
-                setHasKey(!!key);
-            });
-        }
-    }, []);
+    const { articles, loading, hasMore, sentinelRef } = useInfiniteScroll(activeTab);
 
     const categories = ['All', 'Tech', 'Design', 'Crypto', 'Culture'] as const;
 
@@ -43,30 +35,7 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
         }
     };
 
-    if (hasKey === false) {
-        return (
-            <div className="w-full h-full bg-[#0f111a] flex flex-col items-center justify-center p-8 text-center">
-                <div className="max-w-md space-y-6">
-                    <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
-                        <Bookmark className="w-8 h-8 text-blue-500" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white">Latest News</h2>
-                    <p className="text-gray-400">
-                        Connect your GNews API key to see the latest articles in Tech, Design, and Crypto.
-                    </p>
-                    <button
-                        onClick={onOpenSettings}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-                    >
-                        Configure GNews Key
-                    </button>
-                    <p className="text-xs text-zinc-600 pt-4">
-                        Don't have a key? <a href="#" className="underline hover:text-zinc-400">Get one here</a>.
-                    </p>
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="w-full h-full bg-[#0f111a] flex flex-col overflow-hidden relative">
@@ -93,22 +62,25 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
                         ))}
                     </div>
 
-                    {/* Masonry Grid Feed */}
-                    <div className="grid gap-6 pb-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gridAutoRows: '200px' }}>
-                        {articles.map((article, index) => (
+                    {/* Editorial Mosaic Grid */}
+                    <MosaicGrid
+                        items={articles}
+                        keyExtractor={(item) => `${item.id}-${item.title}`} // Composite key
+                        pattern="editorial"
+                        renderItem={(article, index, spanClass) => (
                             <article
-                                key={`${article.id}-${index}`} // Using composite key to ensure uniqueness if needed
                                 className={cn(
                                     "group relative rounded-xl overflow-hidden bg-[#161b22] border border-[#30363d] hover:border-gray-500 transition-all duration-300 cursor-pointer shadow-lg w-full",
-                                    getCardSpanClass(article.cardType)
+                                    "animate-fade-up",
+                                    spanClass
                                 )}
                                 style={{
                                     animation: `fadeInFromBottom 0.6s ease-out forwards`,
-                                    animationDelay: `${(index % 21) * 0.05}s`, // Stagger based on position in batch
-                                    opacity: 0, // Start hidden for animation
+                                    animationDelay: `${(index % 21) * 0.05}s`,
+                                    opacity: 0,
                                 }}
                             >
-                                {/* Full Bleed Image (for Hero and Sub-Hero mostly, but applied to all for consistency in this design) */}
+                                {/* Full Bleed Image */}
                                 <div className="absolute inset-0">
                                     <img
                                         src={article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80'}
@@ -116,7 +88,7 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
-                                            target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80'; // Fallback
+                                            target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80';
                                         }}
                                     />
                                     {/* Gradient Scrim Overlay */}
@@ -125,7 +97,6 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
 
                                 {/* Content Overlay */}
                                 <div className="relative h-full flex flex-col justify-end p-6 z-10 gap-2">
-
                                     {/* Author & Meta */}
                                     <div className="flex items-center gap-2">
                                         <span className="text-[11px] font-semibold text-white/90 tracking-wide uppercase">{article.source.name}</span>
@@ -135,13 +106,13 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
                                     {/* Title */}
                                     <h2 className={cn(
                                         "font-bold text-white leading-tight drop-shadow-sm",
-                                        article.cardType === 'hero' ? "text-3xl md:text-4xl" : "text-xl"
+                                        index === 0 ? "text-3xl md:text-4xl" : index === 1 ? "text-2xl" : "text-xl"
                                     )} style={{ fontFamily: '"Playfair Display", serif' }}>
                                         {article.title}
                                     </h2>
 
-                                    {/* Preview (Shown mostly on Hero/Sub-hero) */}
-                                    {article.cardType !== 'basic' && (
+                                    {/* Preview (Shown on Hero/Sub-hero) */}
+                                    {(index === 0 || index === 1) && (
                                         <p className="text-gray-300 text-xs leading-relaxed line-clamp-2 opacity-90">
                                             {article.description}
                                         </p>
@@ -163,10 +134,9 @@ export function NewsFeed({ onOpenSettings }: { onOpenSettings: () => void }) {
                                         </div>
                                     </div>
                                 </div>
-
                             </article>
-                        ))}
-                    </div>
+                        )}
+                    />
 
                     {/* Infinite Scroll Sentinel & Loading State */}
                     <div ref={sentinelRef} className="w-full flex justify-center py-8">

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 const isDev = process.env.NODE_ENV === 'development';
@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 import { SettingsService } from './services/settings';
 import { RssService } from './services/rss';
 import { DraftService } from './services/drafts';
+import { ResearchService } from './services/research';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -138,13 +139,7 @@ ipcMain.handle('settings:set-gemini-key', async (_, key: string) => {
   return settingsService.setGeminiKey(key);
 });
 
-ipcMain.handle('settings:get-gnews-key', async () => {
-  return settingsService.getGNewsKey();
-});
 
-ipcMain.handle('settings:set-gnews-key', async (_, key: string) => {
-  return settingsService.setGNewsKey(key);
-});
 
 ipcMain.handle('settings:get-anthropic-key', async () => {
   return settingsService.getAnthropicKey();
@@ -170,13 +165,27 @@ ipcMain.handle('settings:set-perplexity-key', async (_, key: string) => {
   return settingsService.setPerplexityKey(key);
 });
 
+ipcMain.handle('settings:get-openrouter-key', async () => {
+  return settingsService.getOpenRouterKey();
+});
+
+ipcMain.handle('settings:set-openrouter-key', async (_, key: string) => {
+  return settingsService.setOpenRouterKey(key);
+});
+
+ipcMain.handle('settings:get-openai-key', async () => {
+  return settingsService.getOpenAIKey();
+});
+
+ipcMain.handle('settings:set-openai-key', async (_, key: string) => {
+  return settingsService.setOpenAIKey(key);
+});
+
 ipcMain.handle('settings:test-gemini-key', async (_, key?: string) => {
   return settingsService.testGeminiKey(key);
 });
 
-ipcMain.handle('settings:test-gnews-key', async (_, key?: string) => {
-  return settingsService.testGNewsKey(key);
-});
+
 
 ipcMain.handle('settings:clear-all-keys', async () => {
   return settingsService.clearAllKeys();
@@ -208,6 +217,9 @@ ipcMain.handle('drafts:list', async () => {
   return draftService.listDrafts();
 });
 
+// --- Research Service ---
+const researchService = new ResearchService();
+
 ipcMain.handle('drafts:read', async (_, id: string) => {
   return draftService.readDraft(id);
 });
@@ -232,4 +244,8 @@ import { logger } from './utils/logger';
 
 ipcMain.on('logger:log', (event, level, message, ...args) => {
   logger.log(level, message, ...args);
+});
+
+ipcMain.on('shell:open-external', (_, url: string) => {
+  shell.openExternal(url);
 });

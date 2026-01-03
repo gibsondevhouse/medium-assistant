@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { NewsFeed } from '../NewsFeed';
-import { ArticlesFeed } from '../Articles/ArticlesFeed';
 import { ResearchTab } from '../Research/ResearchTab';
+import { SettingsDashboard } from '../Settings/SettingsDashboard';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,15 +13,18 @@ function cn(...inputs: ClassValue[]) {
 interface DashboardTab {
   id: string;
   label: string;
-  component: React.ComponentType<{ onOpenSettings: () => void }>;
+  component: React.ComponentType<{ onOpenSettings: () => void; navigateToTab?: (tabId: string) => void }>;
   closeable?: boolean;
 }
 
+// ... imports
+
 interface DashboardProps {
-  onOpenSettings: () => void;
+  activeTab?: string;
+  onTabChange?: (tabId: string) => void;
 }
 
-export function Dashboard({ onOpenSettings }: DashboardProps) {
+export function Dashboard({ activeTab: controlledActiveTab, onTabChange }: DashboardProps) {
   // Default tabs that come with the dashboard
   const defaultTabs: DashboardTab[] = [
     {
@@ -31,15 +34,9 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
       closeable: true,
     },
     {
-      id: 'articles',
-      label: 'Articles',
-      component: ArticlesFeed,
-      closeable: true,
-    },
-    {
       id: 'home',
       label: 'Home',
-      component: function HomeTab({ onOpenSettings }) {
+      component: function HomeTab({ navigateToTab }) {
         return (
           <div className="w-full h-full bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-8">
             <div className="max-w-2xl text-center space-y-6">
@@ -55,16 +52,12 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
                   <p className="text-sm text-gray-400">Stay updated with the latest articles from your favorite topics.</p>
                 </div>
                 <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-blue-500/30 transition-colors text-left">
-                  <h3 className="text-lg font-semibold text-white mb-2">📚 Articles</h3>
-                  <p className="text-sm text-gray-400">Read curated Medium articles on technology, design, and creative work.</p>
-                </div>
-                <div className="p-6 bg-[#161b22] rounded-lg border border-[#30363d] hover:border-blue-500/30 transition-colors text-left">
                   <h3 className="text-lg font-semibold text-white mb-2">🔍 Research</h3>
                   <p className="text-sm text-gray-400">Deep dive into topics and synthesize comprehensive reports using AI.</p>
                 </div>
               </div>
               <button
-                onClick={onOpenSettings}
+                onClick={() => navigateToTab?.('settings')}
                 className="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
               >
                 Configure API Keys
@@ -81,10 +74,22 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
       component: ResearchTab,
       closeable: true,
     },
+    {
+      id: 'settings',
+      label: 'Settings',
+      component: SettingsDashboard,
+      closeable: true,
+    },
   ];
 
   const [tabs, setTabs] = useState<DashboardTab[]>(defaultTabs);
-  const [activeTabId, setActiveTabId] = useState('home'); // Home is default but News Feed is leftmost
+  const [internalActiveTabId, setInternalActiveTabId] = useState('home');
+
+  const activeTabId = controlledActiveTab ?? internalActiveTabId;
+  const handleTabChange = (id: string) => {
+    onTabChange?.(id);
+    setInternalActiveTabId(id);
+  };
 
   const activeTab = tabs.find(t => t.id === activeTabId);
   const ActiveComponent = activeTab?.component;
@@ -95,7 +100,7 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
     setTabs(newTabs);
     // Switch to first tab if closed tab was active
     if (activeTabId === tabId) {
-      setActiveTabId(newTabs[0].id);
+      handleTabChange(newTabs[0].id);
     }
   };
 
@@ -104,7 +109,7 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
     if (!tabs.find(t => t.id === tab.id)) {
       setTabs([...tabs, tab]);
     }
-    setActiveTabId(tab.id);
+    handleTabChange(tab.id);
   };
 
   return (
@@ -116,10 +121,10 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
             key={tab.id}
             role="button"
             tabIndex={0}
-            onClick={() => setActiveTabId(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                setActiveTabId(tab.id);
+                handleTabChange(tab.id);
               }
             }}
             className={cn(
@@ -164,7 +169,15 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
         {ActiveComponent ? (
-          <ActiveComponent onOpenSettings={onOpenSettings} />
+          <ActiveComponent
+            onOpenSettings={() => handleTabChange('settings')}
+            navigateToTab={(tabId: string) => {
+              // Switch to existing tab if present, else ignore (or logic could be expanded to add dynamic tabs)
+              if (tabs.find(t => t.id === tabId)) {
+                handleTabChange(tabId);
+              }
+            }}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             Tab not found

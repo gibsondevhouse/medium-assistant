@@ -12,7 +12,7 @@ interface StoreSchema {
 export class SettingsService {
     private configDir: string;
     private geminiKeyPath: string;
-    private gnewsKeyPath: string;
+
     private anthropicKeyPath: string;
     private deepseekKeyPath: string;
     private perplexityKeyPath: string;
@@ -21,16 +21,21 @@ export class SettingsService {
     constructor() {
         this.configDir = path.join(app.getPath('userData'), 'keys');
         this.geminiKeyPath = path.join(this.configDir, 'gemini');
-        this.gnewsKeyPath = path.join(this.configDir, 'gnews');
+
         this.anthropicKeyPath = path.join(this.configDir, 'anthropic');
         this.deepseekKeyPath = path.join(this.configDir, 'deepseek');
         this.perplexityKeyPath = path.join(this.configDir, 'perplexity');
+        this.openRouterKeyPath = path.join(this.configDir, 'openrouter');
+        this.openAIKeyPath = path.join(this.configDir, 'openai');
 
         // Ensure config directory exists
         if (!fs.existsSync(this.configDir)) {
             fs.mkdirSync(this.configDir, { recursive: true });
         }
     }
+
+    private openRouterKeyPath: string;
+    private openAIKeyPath: string;
 
     // INTERNAL: Lazy load store
     private getStore() {
@@ -98,41 +103,7 @@ export class SettingsService {
         }
     }
 
-    // GNEWS KEY MANAGEMENT
-    getGNewsKey(): string | null {
-        try {
-            if (!fs.existsSync(this.gnewsKeyPath)) return null;
 
-            if (safeStorage.isEncryptionAvailable()) {
-                const encrypted = fs.readFileSync(this.gnewsKeyPath);
-                return safeStorage.decryptString(encrypted);
-            }
-            return null;
-        } catch (e) {
-            console.error('Failed to read GNews key:', e);
-            return null;
-        }
-    }
-
-    setGNewsKey(key: string): { success: boolean; error?: string } {
-        try {
-            if (!key || key.length < 10) {
-                return { success: false, error: 'Invalid GNews API key format' };
-            }
-
-            const trimmed = key.trim();
-
-            if (safeStorage.isEncryptionAvailable()) {
-                const encrypted = safeStorage.encryptString(trimmed);
-                fs.writeFileSync(this.gnewsKeyPath, encrypted);
-            } else {
-                return { success: false, error: 'Secure storage not available' };
-            }
-            return { success: true };
-        } catch (e: any) {
-            return { success: false, error: e.message };
-        }
-    }
 
     // ANTHROPIC KEY MANAGEMENT
     getAnthropicKey(): string | null {
@@ -215,6 +186,60 @@ export class SettingsService {
         }
     }
 
+    // OPENROUTER KEY MANAGEMENT
+    getOpenRouterKey(): string | null {
+        try {
+            if (!fs.existsSync(this.openRouterKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                return safeStorage.decryptString(fs.readFileSync(this.openRouterKeyPath));
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read OpenRouter key:', e);
+            return null;
+        }
+    }
+
+    setOpenRouterKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.openRouterKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Secure storage unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    // OPENAI KEY MANAGEMENT
+    getOpenAIKey(): string | null {
+        try {
+            if (!fs.existsSync(this.openAIKeyPath)) return null;
+            if (safeStorage.isEncryptionAvailable()) {
+                return safeStorage.decryptString(fs.readFileSync(this.openAIKeyPath));
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to read OpenAI key:', e);
+            return null;
+        }
+    }
+
+    setOpenAIKey(key: string): { success: boolean; error?: string } {
+        try {
+            if (!key) return { success: false, error: 'Invalid key' };
+            if (safeStorage.isEncryptionAvailable()) {
+                fs.writeFileSync(this.openAIKeyPath, safeStorage.encryptString(key.trim()));
+                return { success: true };
+            }
+            return { success: false, error: 'Secure storage unavailable' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+
     // TEST KEYS
     async testGeminiKey(key?: string): Promise<{ success: boolean; error?: string }> {
         try {
@@ -239,41 +264,18 @@ export class SettingsService {
         }
     }
 
-    async testGNewsKey(key?: string): Promise<{ success: boolean; error?: string }> {
-        try {
-            const apiKey = key || this.getGNewsKey();
-            if (!apiKey) return { success: false, error: 'No GNews key set' };
 
-            const response = await fetch(
-                `https://gnews.io/api/v4/top-headlines?category=general&lang=en&max=1&token=${apiKey}`
-            );
-
-            if (response.status === 401 || response.status === 403) {
-                return { success: false, error: 'GNews API key is invalid' };
-            }
-
-            if (!response.ok) {
-                return { success: false, error: `GNews API returned ${response.status}` };
-            }
-
-            const data: any = await response.json();
-            if (!data.articles || data.articles.length === 0) {
-                // It's possible to have 0 articles but valid key, ideally we assume success if 200 OK.
-                // But for "top-headlines" general "en", 0 is suspicious.
-                // Let's pass if we got a valid JSON struct.
-            }
-
-            return { success: true };
-        } catch (e: any) {
-            return { success: false, error: e.message || 'GNews API test failed' };
-        }
-    }
 
     // UTILITY
     clearAllKeys(): { success: boolean } {
         try {
             if (fs.existsSync(this.geminiKeyPath)) fs.unlinkSync(this.geminiKeyPath);
-            if (fs.existsSync(this.gnewsKeyPath)) fs.unlinkSync(this.gnewsKeyPath);
+
+            if (fs.existsSync(this.anthropicKeyPath)) fs.unlinkSync(this.anthropicKeyPath);
+            if (fs.existsSync(this.deepseekKeyPath)) fs.unlinkSync(this.deepseekKeyPath);
+            if (fs.existsSync(this.perplexityKeyPath)) fs.unlinkSync(this.perplexityKeyPath);
+            if (fs.existsSync(this.openRouterKeyPath)) fs.unlinkSync(this.openRouterKeyPath);
+            if (fs.existsSync(this.openAIKeyPath)) fs.unlinkSync(this.openAIKeyPath);
             return { success: true };
         } catch (e) {
             return { success: false };
@@ -281,6 +283,7 @@ export class SettingsService {
     }
 
     bothKeysSet(): boolean {
-        return !!(this.getGeminiKey() && this.getGNewsKey());
+        // Legacy method, maybe update or deprecate? Just returns true if Gemini/GNews set.
+        return !!(this.getGeminiKey());
     }
 }

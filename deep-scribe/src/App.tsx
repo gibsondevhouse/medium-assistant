@@ -7,7 +7,6 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DeepScribeLayout } from './components/DeepScribeLayout';
 import { Dashboard } from './components/Dashboard/Dashboard';
-import { SettingsModal } from './components/Settings/SettingsModal';
 import { Editor } from './components/Editor/Editor';
 import { ChatPanel } from './components/Chat/ChatPanel';
 import { useDraftStore } from './store/draftStore';
@@ -20,7 +19,7 @@ function App() {
   const [backendStatus, setBackendStatus] = useState('Connecting...');
 
   // Settings State
-  const [showSettings, setShowSettings] = useState(false);
+
   const [activeProvider, setActiveProvider] = useState(() => localStorage.getItem('activeProvider') || 'gemini');
 
   // Draft Store
@@ -74,13 +73,16 @@ function App() {
       window.electronAPI.settings.bothKeysSet().then((keysPresent) => {
         console.log("Startup Auth Check:", keysPresent ? "Keys Present" : "No Keys (Lazy Mode)");
         if (!keysPresent) {
-          setShowSettings(true);
+          setDashboardTab('settings');
         }
       });
     } else {
       console.warn("Electron API not available (App.tsx)");
     }
   }, []);
+
+  // Dashboard Tab State
+  const [dashboardTab, setDashboardTab] = useState<string>('home');
 
   const handleCreateDraft = async () => {
     await createNewDraft();
@@ -110,10 +112,13 @@ function App() {
 
             {/* Dashboard */}
             <button
-              onClick={() => setActiveView('Dashboard')}
+              onClick={() => {
+                setActiveView('Dashboard');
+                setDashboardTab('home');
+              }}
               className={cn(
                 "text-left text-sm text-[15px] font-medium transition-all duration-200",
-                activeView === 'Dashboard'
+                activeView === 'Dashboard' && dashboardTab !== 'settings'
                   ? "text-white translate-x-1"
                   : "text-[#8b949e] hover:text-white hover:translate-x-1"
               )}
@@ -123,10 +128,15 @@ function App() {
 
             {/* Settings (Moved here) */}
             <button
-              onClick={() => setShowSettings(true)}
+              onClick={() => {
+                setActiveView('Dashboard');
+                setDashboardTab('settings');
+              }}
               className={cn(
-                "text-left text-sm text-[15px] font-medium transition-all duration-200 text-[#8b949e] hover:text-white hover:translate-x-1",
-                // No active state visual for settings strictly, usually it opens a modal
+                "text-left text-sm text-[15px] font-medium transition-all duration-200",
+                activeView === 'Dashboard' && dashboardTab === 'settings'
+                  ? "text-white translate-x-1"
+                  : "text-[#8b949e] hover:text-white hover:translate-x-1"
               )}
             >
               Settings
@@ -299,28 +309,9 @@ function App() {
 
   return (
     <>
-      {/* AuthOverlay removed for Lazy Auth */}
-
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        activeProvider={activeProvider}
-        setActiveProvider={setActiveProvider}
-        onKeysUpdated={() => {
-          console.log("Keys updated");
-          // Force re-render or notify components?
-          // For now, components check on mount/interaction.
-        }}
-      // "Done" button still validates, but closing doesn't strictly depend on it for app access anymore,
-      // though SettingsModal internal logic might still prefer valid keys.
-      // Actually, let's allow closing even if keys aren't set in this "Lazy" mode?
-      // The current SettingsModal logic enforces valid keys to "Done" (save). 
-      // User can still click "Cancel" or "Close" if we add that, or just use "Done" when they are ready.
-      />
-
       <DeepScribeLayout
         sidebar={Sidebar}
-        editor={activeView === 'Editor' ? <Editor /> : <Dashboard onOpenSettings={() => setShowSettings(true)} />}
+        editor={activeView === 'Editor' ? <Editor /> : <Dashboard activeTab={dashboardTab} onTabChange={setDashboardTab} />}
         metadata={rightPanelMode === 'chat' ? <ChatPanel /> : Metadata}
       />
     </>
