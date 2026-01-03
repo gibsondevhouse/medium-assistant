@@ -5,15 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     log: (level: string, message: string, ...args: any[]) => ipcRenderer.send('logger:log', level, message, ...args)
   },
   getApiPort: () => ipcRenderer.invoke('get-api-port'),
-  // Gemini CLI
-  gemini: {
-    generate: (prompt: string) => ipcRenderer.invoke('gemini:generate', prompt)
-  },
-  onGeminiLog: (callback: (message: string) => void) => {
-    const subscription = (_: any, message: string) => callback(message);
-    ipcRenderer.on('gemini:log', subscription);
-    return () => ipcRenderer.removeListener('gemini:log', subscription);
-  },
   rss: {
     fetch: (url: string) => ipcRenderer.invoke('rss:fetch', url)
   },
